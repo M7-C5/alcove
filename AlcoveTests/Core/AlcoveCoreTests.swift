@@ -544,4 +544,38 @@ struct AlcoveCoreTests {
         #expect(!result.bottlenecks.isEmpty)
         #expect(result.bottlenecks.allSatisfy { $0.severity == .warning })
     }
+
+    @Test func wallMountedElevatedCabinetDoesNotTriggerCollisionWithFloorFurniture() {
+        let rulebook = FastPathRulebook()
+        let roomDims = (width: 4.5, length: 4.5)
+
+        let desk = Furniture(
+            name: "Study Desk",
+            category: .table,
+            positionX: 0.0,
+            positionY: 0.0,
+            positionZ: -1.8,
+            rotationYaw: 0.0,
+            width: 1.4,
+            length: 0.7,
+            height: 0.75
+        )
+        let wallCabinet = Furniture(
+            name: "Storage",
+            category: .storage,
+            positionX: 0.0,
+            positionY: 1.25,
+            positionZ: -1.9,
+            rotationYaw: 0.0,
+            width: 1.4,
+            length: 0.35,
+            height: 0.7
+        )
+
+        let warnings = rulebook.evaluateSpatialWarnings(
+            furnitures: [desk, wallCabinet],
+            roomDimensions: roomDims
+        )
+        #expect(warnings.isEmpty)
+    }
 }

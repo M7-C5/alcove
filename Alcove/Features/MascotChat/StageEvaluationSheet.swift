@@ -49,17 +49,29 @@ public struct StageEvaluationSheet: View {
     }
 
     private var primaryActionTitle: String {
-        if stage == .harmony {
-            return "View in AR Walkthrough"
-        } else if stage == .audit {
-            return "Proceed to Rearrangement"
-        } else {
-            return result.canAdvance ? "Advance to Next Stage" : "Proceed Anyway (Advisory Override)"
+        switch stage {
+        case .audit:
+            return "Continue to Rearrangement"
+        case .rearrangement:
+            return result.canAdvance ? "Continue to Lighting" : "Continue Anyway"
+        case .illumination:
+            return result.canAdvance ? "Continue to Results" : "Continue Anyway"
+        case .harmony:
+            return "Start AR Walkthrough"
         }
     }
 
     private var secondaryActionTitle: String {
-        stage == .audit ? "Keep Inspecting Baseline" : "Keep Refining Layout"
+        switch stage {
+        case .audit:
+            return "Keep Inspecting Baseline"
+        case .rearrangement:
+            return "Keep Refining Layout"
+        case .illumination:
+            return "Keep Adjusting Lighting"
+        case .harmony:
+            return "Back to Editing"
+        }
     }
 
     public var body: some View {
@@ -262,7 +274,7 @@ public struct StageEvaluationSheet: View {
                             HStack(spacing: 6) {
                                 Text(primaryActionTitle)
                                     .font(.custom("Cleanow", size: 17, relativeTo: .subheadline))
-                                Image(systemName: stage == .harmony ? "arkit" : "chevron.right")
+                                Image(systemName: "chevron.right")
                                     .font(.system(size: 14, weight: .heavy, design: .rounded))
                             }
                             .foregroundStyle(EvaluationReviewPalette.borderBrown)
@@ -298,19 +310,19 @@ public struct StageEvaluationSheet: View {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .fill(EvaluationReviewPalette.cardPeach)
         )
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(EvaluationReviewPalette.borderBrown, lineWidth: 3)
+                .strokeBorder(EvaluationReviewPalette.borderBrown, lineWidth: 3)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
     }
 
     @ViewBuilder
     private func tactilePillBackground(isEnabledStyle: Bool) -> some View {
         let border = EvaluationReviewPalette.borderBrown
-        let topHighlight = isEnabledStyle ? EvaluationReviewPalette.goldHighlight : EvaluationReviewPalette.secondaryHighlight
-        let face = isEnabledStyle ? EvaluationReviewPalette.goldFace : EvaluationReviewPalette.secondaryFace
-        let bottomLip = isEnabledStyle ? EvaluationReviewPalette.goldLip : EvaluationReviewPalette.secondaryLip
+        let topHighlight = isEnabledStyle ? EvaluationReviewPalette.goldHighlight : Color.alcoveBackground
+        let face = isEnabledStyle ? EvaluationReviewPalette.goldFace : Color.alcoveControlActiveFill
+        let bottomLip = isEnabledStyle ? EvaluationReviewPalette.goldLip : Color.alcoveControlActiveShadow
 
         ZStack {
             Capsule()
