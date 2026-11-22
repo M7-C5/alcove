@@ -33,7 +33,7 @@ public struct FurnitureInventoryDock: View {
         Group {
             if archivedFurnitures.isEmpty {
                 Text("No archived furniture")
-                    .font(.subheadline.weight(.medium))
+                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 24)
                     .frame(width: dockWidth, height: dockHeight, alignment: .center)

@@ -93,6 +93,11 @@ public final class MockMascotAIService: MascotAIServiceProtocol {
                 for j in (i + 1)..<furnitures.count {
                     let a = furnitures[i]
                     let b = furnitures[j]
+                    if a.positionY >= 0.85 || b.positionY >= 0.85 { continue }
+                    if a.positionY >= (b.positionY + b.height - 0.05) ||
+                        b.positionY >= (a.positionY + a.height - 0.05) {
+                        continue
+                    }
                     let dx = a.positionX - b.positionX
                     let dz = a.positionZ - b.positionZ
                     let centerDist = sqrt(dx * dx + dz * dz)

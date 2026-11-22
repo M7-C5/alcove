@@ -209,6 +209,7 @@ public struct FastPathRulebook: Sendable {
             for j in (i + 1)..<active.count {
                 let b = active[j]
                 if isSuspendedOrWallMounted(b) { continue }
+                if isVerticallySeparated(a, b) { continue }
                 if isTabletopLampOnSurface(a: a, b: b) || isTabletopLampOnSurface(a: b, b: a) {
                     continue
                 }
@@ -381,9 +382,17 @@ public struct FastPathRulebook: Sendable {
     }
 
     private func isSuspendedOrWallMounted(_ f: Furniture) -> Bool {
+        f.positionY >= 0.85 ||
         f.name.localizedCaseInsensitiveContains("ceiling") ||
         f.name.localizedCaseInsensitiveContains("pendant") ||
-        f.name.localizedCaseInsensitiveContains("sconce")
+        f.name.localizedCaseInsensitiveContains("sconce") ||
+        f.name.localizedCaseInsensitiveContains("wall ")
+    }
+
+    private func isVerticallySeparated(_ a: Furniture, _ b: Furniture) -> Bool {
+        let verticalClearance = 0.05
+        return a.positionY >= (b.positionY + b.height - verticalClearance) ||
+            b.positionY >= (a.positionY + a.height - verticalClearance)
     }
 
     private func isTabletopLampOnSurface(a: Furniture, b: Furniture) -> Bool {

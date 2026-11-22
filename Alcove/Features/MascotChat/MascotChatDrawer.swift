@@ -123,6 +123,7 @@ public struct MascotChatDrawer: View {
                                     }
                                 }
                                 .padding(.horizontal, 2)
+                                .padding(.vertical, 3)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .frame(maxHeight: keyboardHeight > 0 ? 110 : 156)
@@ -151,6 +152,7 @@ public struct MascotChatDrawer: View {
                             }
                         }
                         .padding(.horizontal, 2)
+                        .padding(.vertical, 4)
                     }
 
                     // 3D Rounded Input Box with Bottom-Right Paperplane Button
@@ -256,13 +258,6 @@ public struct MascotChatDrawer: View {
         HStack {
             if isUser { Spacer(minLength: 48) }
             VStack(alignment: isUser ? .trailing : .leading, spacing: 3) {
-                if let modelBadge, !isUser {
-                    Text(modelBadge)
-                        .font(.system(.caption2, design: .rounded, weight: .bold))
-                        .foregroundStyle(Color.alcoveMutedInk)
-                        .padding(.horizontal, 4)
-                }
-
                 let bubbleShape = RoundedRectangle(cornerRadius: 14, style: .continuous)
                 Text(text)
                     .font(.system(.subheadline, design: .rounded, weight: isUser ? .semibold : .bold))
@@ -306,11 +301,11 @@ public struct MascotChatDrawer: View {
 
                             Capsule()
                                 .fill(Color.alcoveChipFill)
-                                .padding(.top, 3)
-                                .padding(.bottom, 5)
+                                .padding(.top, 2)
+                                .padding(.bottom, 3.5)
                         }
                         .clipShape(Capsule())
-                        .padding(3)
+                        .padding(2)
                     }
                 }
                 .contentShape(Capsule())

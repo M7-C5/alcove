@@ -58,6 +58,7 @@ public struct FurnitureCatalogSheet: View {
                     }
                 }
                 .padding(.horizontal, 18)
+                .padding(.top, 4)
                 .padding(.bottom, 18)
             }
             .frame(maxHeight: 270)
@@ -67,11 +68,11 @@ public struct FurnitureCatalogSheet: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(CatalogFigmaPalette.panelPeach)
         )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(CatalogFigmaPalette.borderBrown, lineWidth: 2.5)
+                .strokeBorder(CatalogFigmaPalette.borderBrown, lineWidth: 2.5)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     private var categoryFilterBar: some View {
@@ -90,6 +91,7 @@ public struct FurnitureCatalogSheet: View {
                 }
             }
             .padding(.horizontal, 18)
+            .padding(.vertical, 4)
         }
     }
 
@@ -163,7 +165,7 @@ public struct FurnitureCatalogSheet: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(CatalogFigmaPalette.borderBrown, lineWidth: 2)
+                    .strokeBorder(CatalogFigmaPalette.borderBrown, lineWidth: 2)
             )
         }
         .buttonStyle(.plain)
