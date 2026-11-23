@@ -122,11 +122,11 @@ public struct MascotChatDrawer: View {
                                         .id("thinkingIndicator")
                                     }
                                 }
-                                .padding(.horizontal, 2)
-                                .padding(.vertical, 3)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 6)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            .frame(maxHeight: keyboardHeight > 0 ? 110 : 156)
+                            .frame(maxHeight: keyboardHeight > 0 ? 96 : 164)
                             .onChange(of: viewModel.chatHistory.count) {
                                 if let lastID = viewModel.chatHistory.last?.id {
                                     withAnimation(.easeOut(duration: 0.2)) {
@@ -151,8 +151,8 @@ public struct MascotChatDrawer: View {
                                 suggestionChip(query)
                             }
                         }
-                        .padding(.horizontal, 2)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 6)
                     }
 
                     // 3D Rounded Input Box with Bottom-Right Paperplane Button
@@ -208,8 +208,8 @@ public struct MascotChatDrawer: View {
 
                 }
                 .padding(.horizontal, 44)
-                .padding(.top, 38)
-                .padding(.bottom, 26)
+                .padding(.top, keyboardHeight > 0 ? 30 : 38)
+                .padding(.bottom, keyboardHeight > 0 ? 20 : 26)
                 .frame(maxWidth: 980, alignment: .leading)
                 .background {
                     AlcoveTactileCardBackground(
