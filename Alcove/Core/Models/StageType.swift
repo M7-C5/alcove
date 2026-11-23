@@ -41,7 +41,7 @@ public enum StageType: String, Codable, CaseIterable, Sendable, Identifiable {
         case .audit: return "magnifyingglass.circle.fill"
         case .rearrangement: return "arrow.up.and.down.and.arrow.left.and.right"
         case .illumination: return "sun.max.fill"
-        case .harmony: return "sparkles.rectangle.stack.fill"
+        case .harmony: return "flag.checkered"
         }
     }
 

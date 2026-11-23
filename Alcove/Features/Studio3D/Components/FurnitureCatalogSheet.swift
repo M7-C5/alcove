@@ -91,7 +91,7 @@ public struct FurnitureCatalogSheet: View {
                 }
             }
             .padding(.horizontal, 18)
-            .padding(.vertical, 4)
+            .padding(.vertical, 6)
         }
     }
 
