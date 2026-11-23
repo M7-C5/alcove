@@ -238,7 +238,7 @@ public struct FastPathRulebook: Sendable {
                         b.name.localizedCaseInsensitiveContains("seat")
                     let isTableSeating = (isTableA && isSeatB) || (isTableB && isSeatA)
                     let minAxisExtSum = min(extA.x + extB.x, extA.z + extB.z)
-                    let tolerance = isTableSeating ? min(0.65, max(0.45, minAxisExtSum * 0.80)) : 0.06
+                    let tolerance = isTableSeating ? min(0.75, max(0.50, minAxisExtSum * 0.88)) : 0.06
                     if gapX < -tolerance && gapZ < -tolerance {
                         warnings.append(
                             SpatialWarning(
@@ -253,7 +253,8 @@ public struct FastPathRulebook: Sendable {
                     continue
                 }
 
-                if gapX < -0.02 && gapZ < -0.02 {
+                let collisionOverlapThreshold = (a.category == .seating && b.category == .seating) ? -0.12 : -0.02
+                if gapX < collisionOverlapThreshold && gapZ < collisionOverlapThreshold {
                     warnings.append(
                         SpatialWarning(
                             id: "collision_\(a.id.uuidString)_\(b.id.uuidString)",
@@ -382,7 +383,7 @@ public struct FastPathRulebook: Sendable {
     }
 
     private func isSuspendedOrWallMounted(_ f: Furniture) -> Bool {
-        f.positionY >= 0.85 ||
+        f.positionY >= 0.35 ||
         f.name.localizedCaseInsensitiveContains("ceiling") ||
         f.name.localizedCaseInsensitiveContains("pendant") ||
         f.name.localizedCaseInsensitiveContains("sconce") ||
