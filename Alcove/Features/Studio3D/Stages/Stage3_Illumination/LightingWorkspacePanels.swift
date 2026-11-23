@@ -34,7 +34,8 @@ struct LightingSourcePanel: View {
                     .font(.caption)
             }
         }
-        .padding(20)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 20)
         .animation(.easeInOut(duration: 0.16), value: editor.isSelectingMultiple)
         .animation(.easeInOut(duration: 0.16), value: isAdding)
         .lightingPanel()
@@ -42,7 +43,7 @@ struct LightingSourcePanel: View {
 
     private var sourceHeader: some View {
         HStack(spacing: 8) {
-            Label("Your lights", systemImage: "lightbulb")
+            Label("Your Lights", systemImage: "lightbulb")
                 .font(.custom("Cleanow", size: 20, relativeTo: .headline))
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
@@ -127,39 +128,36 @@ struct LightingSourcePanel: View {
 struct LightingSimulationPanel: View {
     @Binding var settings: LightingSimulationSettings
     let activeFixtureCount: Int
+    var titleTopInset: Double = 16
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Label("Lighting preview", systemImage: "sun.max")
+        ViewThatFits(in: .vertical) {
+            previewContent(compact: false)
+            previewContent(compact: true)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.top, titleTopInset)
+        .lightingPanel()
+    }
+
+    private func previewContent(compact: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Label("Lighting Preview", systemImage: "sun.max")
                 .font(.custom("Cleanow", size: 20, relativeTo: .headline))
                 .fixedSize(horizontal: false, vertical: true)
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .top, spacing: 16) {
-                    lightToggle("Lights", isOn: $settings.artificialLightsOn)
-                    lightToggle("Sunlight", isOn: $settings.sunlightOn)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 8)
+            HStack(alignment: .top, spacing: 16) {
+                VStack(spacing: compact ? (titleTopInset > 16 ? 8 : 0) : 16) {
+                    lightToggle("Lights", isOn: $settings.artificialLightsOn, compact: compact)
+                    lightToggle("Show fixtures", isOn: $settings.showsLightFixtures, compact: compact)
+                        .accessibilityHint("Shows or hides the lamp models while keeping their light on.")
                 }
-                Button { settings.showsLightFixtures.toggle() } label: {
-                    ZStack {
-                        // Reserve space for both states so toggling never resizes the button.
-                        Label("Hide fixtures", systemImage: "eye.slash").hidden()
-                        Label("Show fixtures", systemImage: "eye").hidden()
-                        Label(settings.showsLightFixtures ? "Hide fixtures" : "Show fixtures",
-                              systemImage: settings.showsLightFixtures ? "eye.slash" : "eye")
-                    }
-                    .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-                    .padding(.horizontal, 20)
-                    .frame(minHeight: 44)
-                    .background(LightingTheme.row, in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(LightingTheme.ink, lineWidth: 2))
-                    .contentShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .buttonStyle(.plain)
-                .accessibilityValue(settings.showsLightFixtures ? "Visible" : "Hidden")
-                .accessibilityHint("Hides the lamp models while keeping their light on.")
+                .frame(maxWidth: .infinity)
+                lightToggle("Sunlight", isOn: $settings.sunlightOn, compact: compact)
             }
-            VStack(spacing: 0) {
+            Spacer(minLength: 8)
+            VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Text("12 AM")
                     Spacer()
@@ -170,7 +168,7 @@ struct LightingSimulationPanel: View {
                 .font(.caption)
                 Slider(value: Binding(get: { Double(settings.clampedMinute) },
                                       set: { settings.minuteOfDay = Int($0) }), in: 0...1439, step: 1)
-                    .frame(minHeight: 44)
+                    .frame(maxWidth: .infinity, minHeight: 44)
                     .tint(Color("AlcoveLightingToggle"))
                     .accessibilityLabel("Time of day")
                     .accessibilityValue(settings.timeLabel)
@@ -179,14 +177,17 @@ struct LightingSimulationPanel: View {
             let sunlightActive = settings.sunlightOn &&
                 IlluminationSimulationEngine().calculateDaylight(hourOfDay: settings.hourOfDay).intensityLux > 0
             if let limit = StudioLightBudget.maximumFixtures(sunlightActive: sunlightActive), activeFixtureCount > limit {
-                Text("Showing the \(limit) brightest lights on this device.").font(.caption)
+                Text("Showing the \(limit) brightest lights on this device.")
+                    .font(.caption)
+                    .padding(.top, 8)
             }
         }
-        .padding(20)
-        .lightingPanel()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
+        .padding(.bottom, compact ? (titleTopInset > 16 ? 16 : 0) : 24)
     }
-    private func lightToggle(_ title: String, isOn: Binding<Bool>) -> some View {
-        VStack(spacing: 8) {
+    private func lightToggle(_ title: String, isOn: Binding<Bool>, compact: Bool) -> some View {
+        VStack(spacing: compact ? 0 : 4) {
             Text(title).font(.subheadline.bold())
             Toggle(title, isOn: isOn)
                 .labelsHidden()
@@ -201,40 +202,60 @@ struct LightingSimulationPanel: View {
 struct LightingEditPanel: View {
     @Binding var typePickerPresented: Bool
     @Bindable var editor: LightingSetupViewModel
-    var minimumHeight: Double = 0
+    var titleTopInset: Double = 16
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label("Light settings", systemImage: "lamp.desk.fill")
+        ViewThatFits(in: .vertical) {
+            settingsContent(compact: false, inlineValues: false)
+            settingsContent(compact: true, inlineValues: false)
+            settingsContent(compact: true, inlineValues: true)
+        }
+        .animation(.easeInOut(duration: 0.16), value: editor.selected?.id)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.top, titleTopInset)
+        .lightingPanel()
+    }
+
+    private func settingsContent(compact: Bool, inlineValues: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Label("Light Settings", systemImage: "lamp.desk.fill")
                     .font(.custom("Cleanow", size: 20, relativeTo: .headline))
                 Spacer(minLength: 0)
+                if inlineValues, editor.selectionCount > 1 {
+                    Text("\(editor.selectionCount)")
+                        .font(.caption.bold())
+                        .accessibilityLabel("Editing \(editor.selectionCount) lights together")
+                }
             }
-            selectionSummary
+            if !inlineValues, editor.selectionCount > 1 {
+                Text("Editing \(editor.selectionCount) lights")
+                    .font(.caption.weight(.semibold))
+                    .padding(.top, 8)
+            }
             lampTypePicker
+                .padding(.top, compact ? 8 : 12)
+            if !inlineValues, editor.selectionCount > 1 {
+                Text("Changes apply to all selected lights")
+                    .font(compact ? .caption2 : .caption)
+                    .foregroundStyle(Color.alcoveMutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 8)
+            }
             if let fixture = editor.selected {
-                fixtureControls(fixture).transition(.opacity)
+                Spacer(minLength: compact ? 8 : 16)
+                fixtureControls(fixture, compact: compact, inlineValues: inlineValues)
+                    .transition(.opacity)
             } else {
                 Text(editor.isSelectingMultiple ? "Select lights from the list or the room to edit them together." : "Choose a lamp type, then tap the room to place it.")
                     .font(.subheadline)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.bottom, 16)
+                    .padding(.top, 12)
             }
         }
-        .animation(.easeInOut(duration: 0.16), value: editor.selected?.id)
-        .frame(minHeight: max(0, minimumHeight - 40), alignment: .top)
-        .padding(20)
-        .lightingPanel()
-    }
-
-    @ViewBuilder private var selectionSummary: some View {
-        if editor.selectionCount > 1 {
-            Text("Editing \(editor.selectionCount) lights")
-                .font(.subheadline.bold())
-            Text("Changes apply to all selected lights.")
-                .font(.caption)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
+        .padding(.bottom, compact ? 8 : 24)
     }
 
     private var lampTypePicker: some View {
@@ -259,39 +280,65 @@ struct LightingEditPanel: View {
         .anchorPreference(key: LightingLampTypeAnchorKey.self, value: .bounds) { $0 }
     }
 
-    private func fixtureControls(_ fixture: LightFixture) -> some View {
+    private func fixtureControls(_ fixture: LightFixture, compact: Bool, inlineValues: Bool) -> some View {
         let colorValue = editor.commonTemperature.map { "\($0) K" } ?? "Mixed"
         let brightnessValue = editor.commonBrightness.map { "\(Int($0)) lm" } ?? "Mixed"
-        return VStack(alignment: .leading, spacing: 12) {
-            VStack(spacing: 0) {
-                HStack {
-                    Text("Color Temperature").font(.subheadline.bold())
-                    Spacer(minLength: 4)
-                    Text(colorValue).font(.caption).monospacedDigit()
-                }
+        return VStack(alignment: .leading, spacing: 0) {
+            sliderSection("Color Temperature", value: colorValue, lower: "2200 K", upper: "6500 K",
+                          compact: compact, inlineValues: inlineValues) {
                 LightingGradientSlider(value: Binding(
                     get: { Double(editor.selected?.colorTemperatureKelvin ?? fixture.colorTemperatureKelvin) },
                     set: { value in editor.updateSelected { $0.colorTemperatureKelvin = Int(value) } }
                 ), range: 2200...6500, step: 100, colors: [.orange, .yellow, LightingTheme.row, .cyan],
                                        label: "Color Temperature", formattedValue: editor.commonTemperature.map { "\($0) Kelvin" } ?? "Mixed values")
-                HStack { Text("Warm"); Spacer(); Text("Cool") }.font(.caption)
-            }
-            VStack(spacing: 0) {
-                HStack {
-                    Text("Brightness").font(.subheadline.bold())
-                    Spacer(minLength: 4)
-                    Text(brightnessValue).font(.caption).monospacedDigit()
-                }
+            }.padding(.top, 5)
+            Spacer(minLength: compact ? 8 : 15)
+            sliderSection("Brightness", value: brightnessValue, lower: "0 lm", upper: "3000 lm",
+                          compact: compact, inlineValues: inlineValues) {
                 LightingGradientSlider(value: Binding(
                     get: { editor.selected?.lumens ?? fixture.lumens },
                     set: { value in editor.updateSelected { $0.lumens = value; $0.isOn = value > 0 } }
                 ), range: 0...3000, step: 50,
                                        colors: [Color(uiColor: .darkGray), Color(uiColor: .systemGray6)],
                                        label: "Brightness", formattedValue: editor.commonBrightness.map { "\(Int($0)) lumens" } ?? "Mixed values")
-                HStack { Text("Dim"); Spacer(); Text("Bright") }.font(.caption)
+            }
+            .padding(.bottom, 15)
+        }
+    }
+
+    private func sliderSection<Control: View>(
+        _ title: String, value: String, lower: String, upper: String,
+        compact: Bool, inlineValues: Bool, @ViewBuilder control: () -> Control
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text(title).font(compact ? .caption.bold() : .subheadline.bold())
+                Spacer(minLength: 4)
+                if inlineValues {
+                    Text(value).font(.caption).monospacedDigit()
+                }
+            }
+            if !inlineValues {
+                Text(value)
+                    .font(compact ? .caption2 : .subheadline)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.alcoveMutedInk)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, compact ? 0 : 8)
+            }
+            control()
+            if !inlineValues {
+                HStack {
+                    Text(lower)
+                    Spacer()
+                    Text(upper)
+                }
+                .font(compact ? .caption2 : .caption)
+                .foregroundStyle(Color.alcoveMutedInk)
             }
         }
     }
+
 }
 
 /// Rendered by the workspace above every panel, without native popover chrome.
