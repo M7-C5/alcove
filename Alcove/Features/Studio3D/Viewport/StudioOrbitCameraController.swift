@@ -18,6 +18,7 @@ final class StudioOrbitCameraController {
     private var hasInitialFraming = false
     private var fittedOverviewDistance: Float = 0
     private(set) var animationTask: Task<Void, Never>?
+    private var animationGeneration: UInt = 0
 
     init(width: Double, length: Double, height: Double) {
         roomCorners = StudioViewportGeometry.roomCorners(width: width, length: length, height: height)
@@ -57,6 +58,7 @@ final class StudioOrbitCameraController {
     }
 
     func cancelAnimation() {
+        animationGeneration &+= 1
         animationTask?.cancel()
         animationTask = nil
     }
@@ -109,8 +111,12 @@ final class StudioOrbitCameraController {
             onUpdate()
             return
         }
+        let generation = animationGeneration
         animationTask = Task { @MainActor [weak self] in
             guard let self else { return }
+            defer {
+                if self.animationGeneration == generation { self.animationTask = nil }
+            }
             let startTime = CACurrentMediaTime()
             var deltaYaw = (targetYaw - startYaw).truncatingRemainder(dividingBy: .pi * 2)
             if deltaYaw > .pi { deltaYaw -= .pi * 2 }

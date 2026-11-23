@@ -45,6 +45,15 @@ struct LightingGradientSlider: View {
         min(1, max(0, (value - range.lowerBound) / (range.upperBound - range.lowerBound)))
     }
 
+    private var thumbColor: Color {
+        guard let first = colors.first else { return LightingTheme.row }
+        guard colors.count > 1 else { return first }
+        let position = fraction * Double(colors.count - 1)
+        guard position.isFinite else { return first }
+        let lower = min(Int(position), colors.count - 2)
+        return colors[lower].mix(with: colors[lower + 1], by: position - Double(lower), in: .device)
+    }
+
     var body: some View {
         GeometryReader { proxy in
             let available = max(1, proxy.size.width - 24)
@@ -54,7 +63,7 @@ struct LightingGradientSlider: View {
                     .clipShape(Capsule())
                     .padding(.horizontal, 12)
                 Circle()
-                    .fill(LightingTheme.row)
+                    .fill(thumbColor)
                     .overlay(Circle().stroke(LightingTheme.ink.opacity(0.25)))
                     .frame(width: 24, height: 24)
                     .shadow(color: LightingTheme.ink.opacity(0.15), radius: 3, y: 2)

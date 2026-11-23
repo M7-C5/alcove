@@ -20,6 +20,14 @@ struct LightingRoomSnapshot: Sendable {
     let compassOrientation: RoomCompassOrientation?
     let planSnapshot: RoomPlanSnapshot?
 
+    init(base: LightingRoomSnapshot, fixtures: [LightFixture]) {
+        geometry = base.geometry
+        furnishings = base.furnishings
+        compassOrientation = base.compassOrientation
+        planSnapshot = base.planSnapshot
+        self.fixtures = fixtures.map { base.geometry.clamped($0) }
+    }
+
     @MainActor init(room: Room, fixtures draftFixtures: [LightFixture]? = nil) {
         let bounds = LightingRoomGeometry(width: room.dimensionsWidth, length: room.dimensionsLength,
                                           height: room.dimensionsHeight)
@@ -95,9 +103,7 @@ struct LightingRoomPreview: UIViewRepresentable {
         let coordinator = context.coordinator
         coordinator.badgeSubscription = view.scene.subscribe(to: SceneEvents.Update.self) { [weak coordinator, weak view] event in
             guard let view else { return }
-            coordinator?.updateViewportProjection(in: view)
-            coordinator?.updateMoveBadges(in: view)
-            coordinator?.updateMascot(dt: Float(event.deltaTime))
+            coordinator?.updateFrame(in: view, deltaTime: event.deltaTime)
         }
         return view
     }
@@ -117,9 +123,7 @@ struct LightingRoomPreview: UIViewRepresentable {
     }
 
     static func dismantleUIView(_ view: ARView, coordinator: LightingRoomScene) {
-        coordinator.cameraController.cancelAnimation()
-        coordinator.badgeSubscription?.cancel()
-        coordinator.removeMoveBadges()
+        coordinator.tearDown()
         view.scene.anchors.removeAll()
     }
 
@@ -132,9 +136,12 @@ struct LightingRoomPreview: UIViewRepresentable {
 final class LightingRoomScene: NSObject {
     let root = AnchorEntity(world: .zero)
     var onHeaderOverlap: ((Bool) -> Void)?
-    private var headerOverlap = false
+    private var headerOverlap: Bool?
+    private var headerDeliveryScheduled = false
+    private var isActive = true
     private var hasInitialFraming = false
     private let snapshot: LightingRoomSnapshot
+    private let obstacles: [MascotRoamingEngine.Obstacle]
     private let camera = PerspectiveCamera()
     private let sun = DirectionalLight()
     private var fixtures: [(definition: LightFixture, light: LightingFixtureLight, model: LightingFixtureModel)] = []
@@ -144,6 +151,16 @@ final class LightingRoomScene: NSObject {
     private var placementCameraDistance: Float?
     private var walls: [(entity: Entity, normal: SIMD3<Float>)] = []
     private var fixtureDefinitions: [LightFixture] = []
+    private struct OverlayProjectionKey: Equatable {
+        let camera: Transform
+        let viewport: CGSize
+        let revision: UInt
+    }
+    private var lastOverlayProjection: OverlayProjectionKey?
+    private var overlayRevision: UInt = 0
+    private var overlayElapsed: TimeInterval = 0
+    private(set) var overlayProjectionPassCount = 0
+    private var placementViewportSize: CGSize?
     let placementOverlay = ModelEntity()
     private(set) var isPlacementMode = false
     var isSelectingMultiple = false
@@ -158,6 +175,10 @@ final class LightingRoomScene: NSObject {
 
     init(snapshot: LightingRoomSnapshot) {
         self.snapshot = snapshot
+        obstacles = snapshot.furnishings.map {
+            MascotRoamingEngine.Obstacle(id: $0.id, center: [$0.position.x, $0.position.z],
+                size: [$0.dimensions.x, $0.dimensions.z], yaw: $0.yaw)
+        }
         cameraController = StudioOrbitCameraController(width: snapshot.geometry.width, length: snapshot.geometry.length,
                                                        height: snapshot.geometry.height)
         super.init()
@@ -185,6 +206,7 @@ final class LightingRoomScene: NSObject {
             fitPlacement(in: view)
         }
         guard previousSettings != settings else { return }
+        overlayRevision &+= 1
         previousSettings = settings
         let daylight = IlluminationSimulationEngine().calculateDaylight(hourOfDay: settings.hourOfDay)
         let fraction = settings.sunlightOn ? Float(daylight.intensityLux / 10000) : 0
@@ -226,20 +248,39 @@ final class LightingRoomScene: NSObject {
     private var selectedIDs: Set<UUID> = []
     private var moveBadges: [UUID: UIImageView] = [:]
 
-    private func lightingObstacles() -> [MascotRoamingEngine.Obstacle] {
-        snapshot.furnishings.map { item in
-            MascotRoamingEngine.Obstacle(
-                id: item.id,
-                center: SIMD2<Float>(item.position.x, item.position.z),
-                size: SIMD2<Float>(item.dimensions.x, item.dimensions.z),
-                yaw: item.yaw
-            )
-        }
+    /// Overlay work is bounded to 30 Hz and skipped entirely while the camera and selection are unchanged.
+    func updateFrame(in view: ARView, deltaTime: TimeInterval) {
+        guard isActive, deltaTime.isFinite, deltaTime >= 0 else { return }
+        updateMascot(dt: Float(min(deltaTime, 0.1)))
+        guard view.bounds.width > 1, view.bounds.height > 1 else { return }
+        let key = OverlayProjectionKey(camera: camera.transform, viewport: view.bounds.size, revision: overlayRevision)
+        guard key != lastOverlayProjection else { overlayElapsed = 0; return }
+        overlayElapsed += deltaTime
+        guard lastOverlayProjection == nil || overlayElapsed >= 1.0 / 30 else { return }
+        overlayElapsed = 0
+        updateViewportProjection(in: view)
+        updateMoveBadges(in: view)
+        overlayProjectionPassCount += 1
+        lastOverlayProjection = OverlayProjectionKey(camera: camera.transform, viewport: view.bounds.size,
+                                                     revision: overlayRevision)
+    }
+
+    func tearDown() {
+        isActive = false
+        cameraController.cancelAnimation()
+        badgeSubscription?.cancel()
+        badgeSubscription = nil
+        onHeaderOverlap = nil
+        onPlaceLight = nil
+        onSelectLight = nil
+        onClearSelection = nil
+        onMoveLight = nil
+        removeMoveBadges()
     }
 
     func updateMascot(dt: Float) {
         let size = SIMD2<Float>(Float(snapshot.geometry.width), Float(snapshot.geometry.length))
-        mascotController.update(dt: dt, roomSize: size, obstacles: lightingObstacles())
+        mascotController.update(dt: dt, roomSize: size, obstacles: obstacles)
     }
     private var drag: (id: UUID, height: Float, offset: SIMD2<Float>)?
 
@@ -270,11 +311,8 @@ final class LightingRoomScene: NSObject {
                 view.addSubview(badge)
                 moveBadges[id] = badge
             }
-            let bounds = fixture.model.root.visualBounds(relativeTo: nil)
-            let corners = [bounds.min.x, bounds.max.x].flatMap { x in
-                [bounds.min.y, bounds.max.y].flatMap { y in
-                    [bounds.min.z, bounds.max.z].compactMap { z in view.project([x, y, z]) }
-                }
+            let corners = fixture.model.localBoundsCorners.compactMap {
+                view.project(fixture.model.root.convert(position: $0, to: nil))
             }
             if let right = corners.map(\.x).max(), let top = corners.map(\.y).min() {
                 // A small hint beside the silhouette keeps the fixture itself unobstructed.
@@ -299,6 +337,10 @@ final class LightingRoomScene: NSObject {
     }
 
     private func fitPlacement(in view: ARView) {
+        if isPlacementMode {
+            guard placementViewportSize != view.bounds.size else { return }
+            placementViewportSize = view.bounds.size
+        }
         cameraController.distance = LightingPlacementFraming.distance(width: snapshot.geometry.width,
             length: snapshot.geometry.length, height: snapshot.geometry.height, viewport: view.bounds.size)
         positionCamera()
@@ -312,20 +354,31 @@ final class LightingRoomScene: NSObject {
                 view.project(root.convert(position: $0, to: nil))
         }
         let overlap = StudioViewportGeometry.overlapsHeader(points) && !isPlacementMode
-        if headerOverlap != overlap {
-            headerOverlap = overlap
-            onHeaderOverlap?(overlap)
+        guard headerOverlap != overlap else { return }
+        headerOverlap = overlap
+        guard !headerDeliveryScheduled else { return }
+        headerDeliveryScheduled = true
+        // Never re-enter SwiftUI/updateUIView while RealityKit is delivering a render callback.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.headerDeliveryScheduled = false
+            guard self.isActive, let latest = self.headerOverlap else { return }
+            self.onHeaderOverlap?(latest)
         }
     }
 
     func setSelection(_ ids: Set<UUID>) {
+        guard selectedIDs != ids else { return }
         selectedIDs = ids
+        overlayRevision &+= 1
         for fixture in fixtures { fixture.model.setSelected(ids.contains(fixture.definition.id)) }
     }
 
     func setPlacementMode(_ enabled: Bool) {
         guard isPlacementMode != enabled else { return }
         isPlacementMode = enabled
+        placementViewportSize = nil
+        overlayRevision &+= 1
         cameraController.cancelAnimation()
         if enabled {
             placementCameraDistance = cameraController.distance
@@ -389,12 +442,13 @@ final class LightingRoomScene: NSObject {
         }
         root.addChild(mascotController.rootEntity)
         let size = SIMD2<Float>(Float(snapshot.geometry.width), Float(snapshot.geometry.length))
-        mascotController.configureInitialPosition(roomSize: size, obstacles: lightingObstacles())
+        mascotController.configureInitialPosition(roomSize: size, obstacles: obstacles)
     }
 
     /// Reconcile fixtures while retaining the room meshes, camera and unchanged light identities.
     func updateFixtures(_ definitions: [LightFixture]) {
         guard definitions != fixtureDefinitions else { return }
+        overlayRevision &+= 1
         let previous = Dictionary(uniqueKeysWithValues: fixtures.map { ($0.definition.id, $0) })
         let retainedIDs = Set(definitions.map(\.id))
         for fixture in fixtures where !retainedIDs.contains(fixture.definition.id) {
@@ -423,6 +477,7 @@ final class LightingRoomScene: NSObject {
             if light.entity.parent == nil { root.addChild(light.entity) }
             if model.root.parent == nil { root.addChild(model.root) }
             model.present(onPlacementLayer: isPlacementMode ? placementHeight : nil)
+            model.setSelected(selectedIDs.contains(fixture.id))
             light.position(at: model.emitterPosition, direction: model.emissionDirection)
             return (fixture, light, model)
         }
@@ -732,6 +787,7 @@ final class LightingFixtureModel {
     let root: Entity
     let kind: LightKind
     let optics: LightingFixtureOptics
+    let localBoundsCorners: [SIMD3<Float>]
     private let glowingParts: [ModelEntity]
     private let lowerBound: Float
     private let selectionOutline: Entity
@@ -747,6 +803,11 @@ final class LightingFixtureModel {
         root.components.set(LightingFixtureIDComponent(id: fixture.id))
         glowingParts = Self.collectGlowingParts(in: root)
         let bounds = root.visualBounds(relativeTo: root)
+        localBoundsCorners = [bounds.min.x, bounds.max.x].flatMap { x in
+            [bounds.min.y, bounds.max.y].flatMap { y in
+                [bounds.min.z, bounds.max.z].map { z in SIMD3<Float>(x, y, z) }
+            }
+        }
         lowerBound = bounds.min.y
         selectionOutline = Self.makeSelectionOutline(bounds: bounds)
         root.addChild(selectionOutline)

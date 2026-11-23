@@ -8,6 +8,7 @@ struct LightingWorkspaceView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(NavigationRouter.self) private var router: NavigationRouter?
     let room: Room
+    private let roomSnapshot: LightingRoomSnapshot
     @Binding var settings: LightingSimulationSettings
     let onBack: () -> Void
     let isARPresented: Bool
@@ -44,6 +45,7 @@ struct LightingWorkspaceView: View {
          onBackToDashboard: (() -> Void)? = nil,
          onBack: @escaping () -> Void) {
         self.room = room
+        roomSnapshot = LightingRoomSnapshot(room: room)
         self._settings = settings
         self.onBack = onBack
         self.isARPresented = isARPresented
@@ -329,29 +331,35 @@ struct LightingWorkspaceView: View {
         // Reserve a separate footer row for Otter and Next Stage. Both columns
         // share this bottom edge rather than stretching Settings down to the button.
         let columnHeight = max(200, height - min(112, max(0, height - 560)))
-        let previewHeight = min(270, max(250, height * 0.44))
-        let editingHeight = max(160, columnHeight - previewHeight - 20)
+        let panelSpacing = columnHeight < 520 ? 8.0 : 16.0
+        let titleTopInset = columnHeight < 520 ? 16.0 : 32.0
+        // Keep the reference proportions while reserving room for both settings sliders.
+        let previewHeight = min(296, max(240, columnHeight - 264), columnHeight * 0.6)
+        let editingHeight = columnHeight - previewHeight - panelSpacing
         return HStack(alignment: .top, spacing: 0) {
-            LightingCollapsiblePanel(title: "Your lights", expanded: $sourcesExpanded, edge: .leading, width: width) {
+            LightingCollapsiblePanel(title: "Your Lights", expanded: $sourcesExpanded, edge: .leading, width: width) {
                 LightingSourcePanel(editor: editor, isAdding: placement.isActive, onAdd: togglePlacement,
                                     onDelete: { showingDelete = true })
                     .frame(width: width, height: columnHeight)
             }
             .frame(height: columnHeight)
             Spacer(minLength: 0)
-            VStack(alignment: .trailing, spacing: 20) {
-                LightingCollapsiblePanel(title: "Lighting preview", expanded: $previewExpanded, edge: .trailing, width: width) {
+            VStack(alignment: .trailing, spacing: panelSpacing) {
+                LightingCollapsiblePanel(title: "Lighting Preview", expanded: $previewExpanded, edge: .trailing, width: width) {
                     LightingSimulationPanel(settings: $settings,
-                        activeFixtureCount: editor.drafts.filter { settings.output(for: $0) > 0 }.count)
+                        activeFixtureCount: editor.drafts.filter { settings.output(for: $0) > 0 }.count,
+                        titleTopInset: titleTopInset)
                     .frame(width: width, height: previewHeight)
                 }
                 .frame(height: previewHeight)
-                LightingCollapsiblePanel(title: "Light settings", expanded: $editingExpanded, edge: .trailing, width: width) {
-                    LightingEditPanel(typePickerPresented: $lampTypeMenuPresented, editor: editor, minimumHeight: editingHeight)
+                LightingCollapsiblePanel(title: "Light Settings", expanded: $editingExpanded, edge: .trailing, width: width) {
+                    LightingEditPanel(typePickerPresented: $lampTypeMenuPresented, editor: editor,
+                                      titleTopInset: titleTopInset)
                     .frame(width: width, height: editingHeight)
                 }
                 .frame(height: editingHeight)
             }
+            .frame(height: columnHeight, alignment: .top)
         }
         .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -374,7 +382,7 @@ struct LightingWorkspaceView: View {
 
     private var lightingPreview: some View {
         LightingRoomPreview(
-            snapshot: LightingRoomSnapshot(room: room, fixtures: editor.drafts),
+            snapshot: LightingRoomSnapshot(base: roomSnapshot, fixtures: editor.drafts),
             settings: settings,
             preset: preset,
             onSnapToViewportResolved: { snapToViewport = $0 },
