@@ -313,7 +313,7 @@ public struct StageEvaluationSheet: View {
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .strokeBorder(EvaluationReviewPalette.borderBrown, lineWidth: 3)
+                .strokeBorder(EvaluationReviewPalette.borderBrown, lineWidth: 3.5)
         )
     }
 
