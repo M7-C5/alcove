@@ -578,4 +578,71 @@ struct AlcoveCoreTests {
         )
         #expect(warnings.isEmpty)
     }
+
+    @Test func compactTableWithDeeplyTuckedChairsAndSideBySideBoxesOnWallDoNotCollide() {
+        let rulebook = FastPathRulebook()
+        let roomDims = (width: 5.5, length: 5.0)
+
+        let compactTable = Furniture(
+            name: "Table",
+            category: .table,
+            positionX: -0.6,
+            positionY: 0.0,
+            positionZ: 0.5,
+            rotationYaw: 0.0,
+            width: 1.3,
+            length: 0.8,
+            height: 0.75
+        )
+        // Two chairs tucked under the front edge with slight AABB corner overlap
+        let chair1 = Furniture(
+            name: "Chair 1",
+            category: .seating,
+            positionX: -0.92,
+            positionY: 0.0,
+            positionZ: 0.90,
+            rotationYaw: .pi,
+            width: 0.60,
+            length: 0.60
+        )
+        let chair2 = Furniture(
+            name: "Chair 2",
+            category: .seating,
+            positionX: -0.35,
+            positionY: 0.0,
+            positionZ: 0.90,
+            rotationYaw: .pi,
+            width: 0.60,
+            length: 0.60
+        )
+        // Lower floor wardrobe + elevated wall box at y = 0.65m
+        let wardrobe = Furniture(
+            name: "Wardrobe",
+            category: .storage,
+            positionX: -1.8,
+            positionY: 0.0,
+            positionZ: -1.9,
+            rotationYaw: 0.0,
+            width: 0.8,
+            length: 0.6,
+            height: 1.8
+        )
+        let wallBox = Furniture(
+            name: "Cabinet",
+            category: .storage,
+            positionX: -1.8,
+            positionY: 0.65,
+            positionZ: -1.9,
+            rotationYaw: 0.0,
+            width: 0.6,
+            length: 0.4,
+            height: 0.5
+        )
+
+        let warnings = rulebook.evaluateSpatialWarnings(
+            furnitures: [compactTable, chair1, chair2, wardrobe, wallBox],
+            roomDimensions: roomDims
+        )
+        #expect(warnings.isEmpty)
+    }
 }
