@@ -105,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Relax tucked chair/table overlap tolerance and ignore elevated wall furniture >= 0.35m.
 - Polish borders, padding, evaluation copywriting, and ignore elevated wall furniture collisions.
 - Align Result Lighting split/toggle behavior and skip header overlap projection during drag.
 - Prevent double keyboard padding from pushing chat card to top.
