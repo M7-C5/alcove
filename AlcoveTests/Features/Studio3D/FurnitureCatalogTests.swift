@@ -84,4 +84,21 @@ struct FurnitureCatalogTests {
         #expect(vm.dragRevision > revisionBefore)
         #expect(vm.selectedFurnitureID == targetID)
     }
+
+    @Test func catalogIncludesNewFurniturePresetsWithExpectedCategories() {
+        let expected: [(String, FurnitureCategory)] = [
+            ("bookshelf", .storage), ("vanity", .table), ("two_seater_sofa", .seating),
+            ("three_seater_sofa", .seating), ("armchair", .seating), ("ottoman", .seating),
+            ("coffee_table", .table), ("tv_stand", .storage),
+            ("full_length_mirror", .decor), ("fridge", .storage)
+        ]
+        for (id, category) in expected {
+            let preset = FurnitureCatalog.presets.first { $0.id == id }
+            #expect(preset != nil, "Missing preset \(id)")
+            #expect(preset?.category == category)
+        }
+        #expect(!FurnitureCatalog.presets(for: .decor).isEmpty)
+        #expect(FurnitureCatalog.presets.contains { $0.id == "single_bed" && $0.name == "Single Bed" })
+        #expect(!FurnitureCatalog.presets.contains { $0.name == "Twin Bed" })
+    }
 }
