@@ -56,7 +56,8 @@ public final class RoomCaptureMapper: Sendable {
             let mapped = Self.mapCategoryAndName(
                 rawCategory: obj.rawCategory,
                 width: objWidth,
-                length: objLength
+                length: objLength,
+                height: objHeight
             )
 
             let furniture = Furniture(
@@ -101,7 +102,8 @@ public final class RoomCaptureMapper: Sendable {
     private static func mapCategoryAndName(
         rawCategory: String,
         width: Double,
-        length: Double
+        length: Double,
+        height: Double
     ) -> (category: FurnitureCategory, name: String) {
         switch rawCategory.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
         case "bed":
@@ -112,17 +114,34 @@ public final class RoomCaptureMapper: Sendable {
             if max(width, length) <= 0.65 {
                 return (.table, "Nightstand")
             }
+            if height <= 0.55 {
+                return (.table, "Coffee Table")
+            }
             return (.table, "Table")
         case "chair":
+            if max(width, length) >= 0.75 {
+                return (.seating, "Armchair")
+            }
             return (.seating, "Chair")
         case "sofa":
-            return (.seating, "Sofa")
+            let span = max(width, length)
+            if span < 1.15 { return (.seating, "Armchair") }
+            if span < 1.85 { return (.seating, "2-Seater Sofa") }
+            return (.seating, "3-Seater Sofa")
         case "storage", "closet":
+            if min(width, length) <= 0.42 && height >= 1.25 {
+                return (.storage, "Bookshelf")
+            }
+            if height <= 1.05 {
+                return (.storage, "Low Dresser")
+            }
             return (.storage, "Wardrobe")
+        case "refrigerator":
+            return (.storage, "Fridge")
         case "lamp", "lighting":
             return (.lighting, "Floor Lamp")
         case "television":
-            return (.decor, "TV Console")
+            return (.storage, "TV Stand")
         case "fireplace":
             return (.decor, "Fireplace")
         default:

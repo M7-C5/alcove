@@ -183,4 +183,35 @@ struct RoomScanTests {
         #expect(hullPoly.count == 4) // 4 hull vertices covering the full interior without poking past the diagonal
         #expect(ProceduralRoomShellBuilder.polygonArea(hullPoly) > 10.0)
     }
+
+    @Test func mapperClassifiesScannedObjectsIntoNewFurnitureModels() {
+        let walls = [
+            ScannedWallPayload(position: [0, 1.3, -2.0], dimensions: [4.5, 2.6, 0.1], rotationYaw: 0),
+            ScannedWallPayload(position: [0, 1.3, 2.0], dimensions: [4.5, 2.6, 0.1], rotationYaw: .pi),
+            ScannedWallPayload(position: [2.25, 1.3, 0], dimensions: [4.0, 2.6, 0.1], rotationYaw: .pi / 2),
+            ScannedWallPayload(position: [-2.25, 1.3, 0], dimensions: [4.0, 2.6, 0.1], rotationYaw: -.pi / 2)
+        ]
+        let objects = [
+            ScannedObjectPayload(rawCategory: "refrigerator", position: [1.0, 0.9, 1.0], dimensions: [0.75, 1.8, 0.7], rotationYaw: 0),
+            ScannedObjectPayload(rawCategory: "television", position: [0.0, 0.5, -1.5], dimensions: [1.4, 0.9, 0.4], rotationYaw: 0),
+            ScannedObjectPayload(rawCategory: "sofa", position: [0.0, 0.4, 0.0], dimensions: [0.9, 0.8, 0.9], rotationYaw: 0),
+            ScannedObjectPayload(rawCategory: "sofa", position: [0.0, 0.4, 0.5], dimensions: [1.6, 0.8, 0.9], rotationYaw: 0),
+            ScannedObjectPayload(rawCategory: "sofa", position: [0.0, 0.4, 1.0], dimensions: [2.2, 0.8, 0.9], rotationYaw: 0),
+            ScannedObjectPayload(rawCategory: "table", position: [-1.0, 0.2, 0.0], dimensions: [1.1, 0.4, 0.6], rotationYaw: 0),
+            ScannedObjectPayload(rawCategory: "storage", position: [-1.5, 0.9, 1.0], dimensions: [0.9, 1.8, 0.35], rotationYaw: 0)
+        ]
+        let payload = CapturedRoomPayload(
+            roomLength: 4.0, roomWidth: 4.5, roomHeight: 2.6, floorLevel: 0.0,
+            walls: walls, openings: [], objects: objects
+        )
+        let room = RoomCaptureMapper().mapToRoom(payload: payload)
+        let names = room.workingLayout?.furnitures.map(\.name) ?? []
+        #expect(names.contains("Fridge"))
+        #expect(names.contains("TV Stand"))
+        #expect(names.contains("Armchair"))
+        #expect(names.contains("2-Seater Sofa"))
+        #expect(names.contains("3-Seater Sofa"))
+        #expect(names.contains("Coffee Table"))
+        #expect(names.contains("Bookshelf"))
+    }
 }
