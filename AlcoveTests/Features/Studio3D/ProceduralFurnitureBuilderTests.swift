@@ -134,4 +134,65 @@ struct ProceduralFurnitureBuilderTests {
         #expect(bulb != nil)
         #expect(bulb?.light.intensity ?? 0 > 0)
     }
+
+    @Test func buildsNewLivingRoomAndStorageModels() {
+        let cases: [(String, FurnitureCategory, Double, Double, Double, String)] = [
+            ("Bookshelf", .storage, 0.9, 0.35, 1.8, "Bookshelf"),
+            ("Vanity", .table, 1.0, 0.48, 1.35, "Vanity"),
+            ("Coffee Table", .table, 1.15, 0.6, 0.42, "CoffeeTable"),
+            ("2-Seater Sofa", .seating, 1.55, 0.88, 0.82, "Sofa"),
+            ("3-Seater Sofa", .seating, 2.15, 0.92, 0.84, "Sofa"),
+            ("Armchair", .seating, 0.85, 0.85, 0.86, "Armchair"),
+            ("Accent Chair", .seating, 0.78, 0.78, 0.85, "AccentChair"),
+            ("Ottoman", .seating, 0.65, 0.5, 0.42, "Ottoman"),
+            ("TV Stand", .storage, 1.6, 0.45, 1.15, "TVStand"),
+            ("Full-Length Mirror", .decor, 0.55, 0.35, 1.68, "FullLengthMirror"),
+            ("Fridge", .storage, 0.75, 0.72, 1.78, "Fridge")
+        ]
+        for (name, category, w, l, h, expected) in cases {
+            let item = Furniture(name: name, category: category, width: w, length: l, height: h)
+            let entity = ProceduralFurnitureBuilder.buildDetailedEntity(for: item)
+            guard let built = entity.findEntity(named: expected) else {
+                Issue.record("\(name) should build \(expected)")
+                continue
+            }
+            #expect(built.children.count >= 3, "\(name) should be a multi-part model")
+        }
+    }
+
+    @Test func threeSeaterSofaHasMoreCushionsThanTwoSeater() {
+        let two = Furniture(name: "2-Seater Sofa", category: .seating, width: 1.55, length: 0.88, height: 0.82)
+        let three = Furniture(name: "3-Seater Sofa", category: .seating, width: 2.15, length: 0.92, height: 0.84)
+        let twoCount = ProceduralFurnitureBuilder.buildDetailedEntity(for: two).findEntity(named: "Sofa")?.children.count ?? 0
+        let threeCount = ProceduralFurnitureBuilder.buildDetailedEntity(for: three).findEntity(named: "Sofa")?.children.count ?? 0
+        #expect(threeCount > twoCount)
+    }
+
+    @Test func armchairAndAccentChairBuildDistinctModels() {
+        let armchair = Furniture(name: "Armchair", category: .seating, width: 0.85, length: 0.85, height: 0.86)
+        let accent = Furniture(name: "Accent Chair", category: .seating, width: 0.78, length: 0.78, height: 0.85)
+        let armchairEntity = ProceduralFurnitureBuilder.buildDetailedEntity(for: armchair)
+        let accentEntity = ProceduralFurnitureBuilder.buildDetailedEntity(for: accent)
+        #expect(armchairEntity.findEntity(named: "Armchair") != nil)
+        #expect(armchairEntity.findEntity(named: "AccentChair") == nil)
+        #expect(accentEntity.findEntity(named: "AccentChair") != nil)
+        #expect(accentEntity.findEntity(named: "Armchair") == nil)
+    }
+
+    @Test func fullLengthMirrorEaselStaysBehindMirrorGlass() {
+        let item = Furniture(name: "Full-Length Mirror", category: .decor, width: 0.55, length: 0.35, height: 1.68)
+        let entity = ProceduralFurnitureBuilder.buildDetailedEntity(for: item)
+        guard let mirror = entity.findEntity(named: "FullLengthMirror"),
+              let glass = mirror.findEntity(named: "MirrorGlass") else {
+            Issue.record("Expected FullLengthMirror and MirrorGlass")
+            return
+        }
+        let glassBounds = glass.visualBounds(relativeTo: mirror)
+        let easelParts = mirror.children.filter { $0.name == "MirrorEaselLeg" || $0.name == "MirrorEaselBrace" }
+        #expect(easelParts.count == 3)
+        for part in easelParts {
+            let partBounds = part.visualBounds(relativeTo: mirror)
+            #expect(partBounds.max.z < glassBounds.min.z, "Easel part must remain behind mirror glass")
+        }
+    }
 }
