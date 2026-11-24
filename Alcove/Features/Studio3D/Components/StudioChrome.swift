@@ -72,21 +72,39 @@ struct StudioStageProgress: View {
                             case .done(let number):
                                 Circle().fill(Color.alcoveProgressDone)
                                 Circle().stroke(Color.alcoveInk, lineWidth: 2)
-                                Text("\(number)")
-                                    .font(.system(.headline, design: .rounded, weight: .bold))
-                                    .foregroundStyle(Color.alcoveInk)
+                                if step.stage == .harmony {
+                                    Image(systemName: "flag.checkered")
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundStyle(Color.alcoveInk)
+                                } else {
+                                    Text("\(number)")
+                                        .font(.system(.headline, design: .rounded, weight: .bold))
+                                        .foregroundStyle(Color.alcoveInk)
+                                }
                             case .active(let number):
                                 Circle().fill(Color.alcovePrimaryFill)
                                 Circle().stroke(Color.alcoveInk, lineWidth: 2)
-                                Text("\(number)")
-                                    .font(.system(.headline, design: .rounded, weight: .bold))
-                                    .foregroundStyle(Color.alcoveInk)
+                                if step.stage == .harmony {
+                                    Image(systemName: "flag.checkered")
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundStyle(Color.alcoveInk)
+                                } else {
+                                    Text("\(number)")
+                                        .font(.system(.headline, design: .rounded, weight: .bold))
+                                        .foregroundStyle(Color.alcoveInk)
+                                }
                             case .upcoming(let number):
                                 Circle().fill(Color.alcoveProgressInactive)
                                 Circle().stroke(Color.alcoveMutedInk.opacity(0.45), lineWidth: 1.5)
-                                Text("\(number)")
-                                    .font(.system(.headline, design: .rounded, weight: .bold))
-                                    .foregroundStyle(Color.alcoveMutedInk.opacity(0.65))
+                                if step.stage == .harmony {
+                                    Image(systemName: "flag.checkered")
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundStyle(Color.alcoveMutedInk.opacity(0.65))
+                                } else {
+                                    Text("\(number)")
+                                        .font(.system(.headline, design: .rounded, weight: .bold))
+                                        .foregroundStyle(Color.alcoveMutedInk.opacity(0.65))
+                                }
                             }
                         }
                         .frame(width: 40, height: 40)

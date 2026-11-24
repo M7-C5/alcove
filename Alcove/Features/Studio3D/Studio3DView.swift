@@ -510,6 +510,7 @@ public struct Studio3DView: View {
                     viewModel.isFurnitureCatalogPresented = false
                     viewModel.swapTargetFurnitureID = nil
                 }
+                .opacity(isCameraMenuPresented ? 0 : 1)
 
                 if isFreeEditResultMode {
                     StudioResultIconButton(
@@ -579,6 +580,7 @@ public struct Studio3DView: View {
                             }
                     }
                     .buttonStyle(.plain)
+                    .opacity(viewModel.isFurnitureCatalogPresented && viewModel.swapTargetFurnitureID == nil ? 0 : 1)
                     .accessibilityLabel("Add furniture")
                 }
 

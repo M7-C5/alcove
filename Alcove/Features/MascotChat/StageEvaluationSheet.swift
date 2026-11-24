@@ -307,14 +307,15 @@ public struct StageEvaluationSheet: View {
             }
         }
         .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(EvaluationReviewPalette.cardPeach)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .strokeBorder(EvaluationReviewPalette.borderBrown, lineWidth: 3.5)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(EvaluationReviewPalette.borderBrown, lineWidth: 2.5)
         )
+        .padding(4)
     }
 
     @ViewBuilder
