@@ -58,13 +58,13 @@ public enum FurnitureCatalog {
     public static let presets: [FurnitureCatalogItem] = [
         // Beds
         FurnitureCatalogItem(
-            id: "twin_bed",
-            name: "Twin Bed",
+            id: "single_bed",
+            name: "Single Bed",
             category: .bed,
             width: 1.05,
             length: 1.95,
             height: 0.95,
-            assetIdentifier: "bed_twin"
+            assetIdentifier: "bed_single"
         ),
         FurnitureCatalogItem(
             id: "queen_bed",
@@ -163,6 +163,98 @@ public enum FurnitureCatalog {
             length: 0.40,
             height: 1.65,
             assetIdentifier: "lighting_floor_lamp"
+        ),
+
+        // Living room, storage & decor additions
+        FurnitureCatalogItem(
+            id: "vanity",
+            name: "Vanity",
+            category: .table,
+            width: 1.00,
+            length: 0.48,
+            height: 1.35,
+            assetIdentifier: "table_vanity"
+        ),
+        FurnitureCatalogItem(
+            id: "coffee_table",
+            name: "Coffee Table",
+            category: .table,
+            width: 1.15,
+            length: 0.60,
+            height: 0.42,
+            assetIdentifier: "table_coffee_table"
+        ),
+        FurnitureCatalogItem(
+            id: "armchair",
+            name: "Armchair",
+            category: .seating,
+            width: 0.85,
+            length: 0.85,
+            height: 0.86,
+            assetIdentifier: "seating_armchair"
+        ),
+        FurnitureCatalogItem(
+            id: "ottoman",
+            name: "Ottoman",
+            category: .seating,
+            width: 0.65,
+            length: 0.50,
+            height: 0.42,
+            assetIdentifier: "seating_ottoman"
+        ),
+        FurnitureCatalogItem(
+            id: "two_seater_sofa",
+            name: "2-Seater Sofa",
+            category: .seating,
+            width: 1.55,
+            length: 0.88,
+            height: 0.82,
+            assetIdentifier: "seating_two_seater_sofa"
+        ),
+        FurnitureCatalogItem(
+            id: "three_seater_sofa",
+            name: "3-Seater Sofa",
+            category: .seating,
+            width: 2.15,
+            length: 0.92,
+            height: 0.84,
+            assetIdentifier: "seating_three_seater_sofa"
+        ),
+        FurnitureCatalogItem(
+            id: "bookshelf",
+            name: "Bookshelf",
+            category: .storage,
+            width: 0.90,
+            length: 0.35,
+            height: 1.80,
+            assetIdentifier: "storage_bookshelf"
+        ),
+        FurnitureCatalogItem(
+            id: "tv_stand",
+            name: "TV Stand",
+            category: .storage,
+            width: 1.60,
+            length: 0.45,
+            height: 1.15,
+            assetIdentifier: "storage_tv_stand"
+        ),
+        FurnitureCatalogItem(
+            id: "fridge",
+            name: "Fridge",
+            category: .storage,
+            width: 0.75,
+            length: 0.72,
+            height: 1.78,
+            assetIdentifier: "storage_fridge"
+        ),
+        FurnitureCatalogItem(
+            id: "full_length_mirror",
+            name: "Full-Length Mirror",
+            category: .decor,
+            width: 0.55,
+            length: 0.35,
+            height: 1.68,
+            assetIdentifier: "decor_full_length_mirror"
         )
     ]
 

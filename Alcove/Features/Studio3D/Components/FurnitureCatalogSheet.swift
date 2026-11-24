@@ -21,7 +21,7 @@ public struct FurnitureCatalogSheet: View {
     @State private var selectedCategory: FurnitureCategory?
 
     private static let availableCategories: [FurnitureCategory] = [
-        .bed, .table, .seating, .storage, .lighting
+        .bed, .table, .seating, .storage, .lighting, .decor
     ]
 
     public init(
