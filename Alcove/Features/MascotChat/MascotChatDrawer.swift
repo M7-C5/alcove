@@ -68,6 +68,14 @@ public struct MascotChatDrawer: View {
         !viewModel.inputPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !viewModel.isThinking
     }
 
+    private func handleSecretOtterTap() {
+        otterSecretTapCount += 1
+        if otterSecretTapCount >= 5 {
+            otterSecretTapCount = 0
+            showingAPIConfigSheet = true
+        }
+    }
+
     private func closeDrawer() {
         if let onClose {
             onClose()
@@ -89,158 +97,155 @@ public struct MascotChatDrawer: View {
             VStack {
                 Spacer()
 
-                // Main 3D Cream Chat Card
-                VStack(alignment: .leading, spacing: 14) {
-                    // Header / Conversation Area
-                    if viewModel.chatHistory.isEmpty && !viewModel.isThinking {
-                        Text("Hey! What can I help you with?")
-                            .font(.custom("Cleanow", size: 24, relativeTo: .title3))
-                            .foregroundStyle(Color.alcoveText)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    } else {
-                        ScrollViewReader { proxy in
-                            ScrollView {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    ForEach(viewModel.chatHistory) { entry in
-                                        chatBubble(
-                                            isUser: entry.isUser,
-                                            text: entry.text,
-                                            modelBadge: entry.modelBadge
-                                        )
-                                        .id(entry.id)
-                                    }
-
-                                    if viewModel.isThinking {
-                                        HStack(spacing: 8) {
-                                            ProgressView()
-                                                .tint(Color.alcoveBorder)
-                                                .scaleEffect(0.85)
-                                            Text("Otter is thinking...")
-                                                .font(.system(.subheadline, design: .rounded, weight: .bold))
-                                                .foregroundStyle(Color.alcoveMutedInk)
-                                        }
-                                        .padding(.vertical, 4)
-                                        .id("thinkingIndicator")
-                                    }
-                                }
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 6)
+                ZStack(alignment: .topLeading) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        // Header / Conversation Area
+                        if viewModel.chatHistory.isEmpty && !viewModel.isThinking {
+                            Text("Hey! What can I help you with?")
+                                .font(.custom("Cleanow", size: 24, relativeTo: .title3))
+                                .foregroundStyle(Color.alcoveText)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .frame(maxHeight: keyboardHeight > 0 ? 96 : 164)
-                            .onChange(of: viewModel.chatHistory.count) {
-                                if let lastID = viewModel.chatHistory.last?.id {
-                                    withAnimation(.easeOut(duration: 0.2)) {
-                                        proxy.scrollTo(lastID, anchor: .bottom)
+                        } else {
+                            ScrollViewReader { proxy in
+                                ScrollView {
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        ForEach(viewModel.chatHistory) { entry in
+                                            chatBubble(
+                                                isUser: entry.isUser,
+                                                text: entry.text,
+                                                modelBadge: entry.modelBadge
+                                            )
+                                            .id(entry.id)
+                                        }
+
+                                        if viewModel.isThinking {
+                                            HStack(spacing: 8) {
+                                                ProgressView()
+                                                    .tint(Color.alcoveBorder)
+                                                    .scaleEffect(0.85)
+                                                Text("Otter is thinking...")
+                                                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                                                    .foregroundStyle(Color.alcoveMutedInk)
+                                            }
+                                            .padding(.vertical, 4)
+                                            .id("thinkingIndicator")
+                                        }
+                                    }
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 6)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .frame(maxHeight: keyboardHeight > 0 ? 96 : 164)
+                                .onChange(of: viewModel.chatHistory.count) {
+                                    if let lastID = viewModel.chatHistory.last?.id {
+                                        withAnimation(.easeOut(duration: 0.2)) {
+                                            proxy.scrollTo(lastID, anchor: .bottom)
+                                        }
                                     }
                                 }
-                            }
-                            .onChange(of: viewModel.isThinking) {
-                                if viewModel.isThinking {
-                                    withAnimation(.easeOut(duration: 0.2)) {
-                                        proxy.scrollTo("thinkingIndicator", anchor: .bottom)
+                                .onChange(of: viewModel.isThinking) {
+                                    if viewModel.isThinking {
+                                        withAnimation(.easeOut(duration: 0.2)) {
+                                            proxy.scrollTo("thinkingIndicator", anchor: .bottom)
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    // 3D Peach Suggestion Chips (Cleanow font + inner highlight/lip)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 14) {
-                            ForEach(stageSuggestions, id: \.self) { query in
-                                suggestionChip(query)
+                        // 3D Peach Suggestion Chips (Cleanow font + inner highlight/lip)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 14) {
+                                ForEach(stageSuggestions, id: \.self) { query in
+                                    suggestionChip(query)
+                                }
                             }
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 6)
                         }
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 6)
-                    }
 
-                    // 3D Rounded Input Box with Bottom-Right Paperplane Button
-                    ZStack(alignment: .bottomTrailing) {
-                        TextField("Type your thoughts here...", text: $viewModel.inputPrompt, axis: .vertical)
-                            .font(.system(.body, design: .rounded, weight: .medium))
-                            .foregroundStyle(Color.alcoveText)
-                            .lineLimit(2...4)
-                            .padding(.leading, 20)
-                            .padding(.trailing, 58)
-                            .padding(.top, 16)
-                            .padding(.bottom, 34)
-                            .frame(maxWidth: .infinity, minHeight: keyboardHeight > 0 ? 78 : 108, alignment: .topLeading)
-                            .onSubmit {
+                        // 3D Rounded Input Box with Bottom-Right Paperplane Button
+                        ZStack(alignment: .bottomTrailing) {
+                            TextField("Type your thoughts here...", text: $viewModel.inputPrompt, axis: .vertical)
+                                .font(.system(.body, design: .rounded, weight: .medium))
+                                .foregroundStyle(Color.alcoveText)
+                                .lineLimit(2...4)
+                                .padding(.leading, 20)
+                                .padding(.trailing, 58)
+                                .padding(.top, 16)
+                                .padding(.bottom, 34)
+                                .frame(maxWidth: .infinity, minHeight: keyboardHeight > 0 ? 78 : 108, alignment: .topLeading)
+                                .onSubmit {
+                                    viewModel.sendMessage()
+                                }
+
+                            Button {
                                 viewModel.sendMessage()
+                            } label: {
+                                Image(systemName: "paperplane")
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(canSend ? Color.alcoveText : Color.alcoveSecondaryShadow)
+                                    .frame(width: 38, height: 38)
+                                    .background(
+                                        canSend ? Color.alcoveBadgeGold : Color.alcoveBackground,
+                                        in: Circle()
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(canSend ? Color.alcoveBorder : Color.alcoveSecondaryShadow, lineWidth: 2)
+                                    )
                             }
-
-                        Button {
-                            viewModel.sendMessage()
-                        } label: {
-                            Image(systemName: "paperplane")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(canSend ? Color.alcoveText : Color.alcoveSecondaryShadow)
-                                .frame(width: 38, height: 38)
-                                .background(
-                                    canSend ? Color.alcoveBadgeGold : Color.alcoveBackground,
-                                    in: Circle()
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(canSend ? Color.alcoveBorder : Color.alcoveSecondaryShadow, lineWidth: 2)
-                                )
+                            .buttonStyle(.plain)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Circle())
+                            .disabled(!canSend)
+                            .accessibilityLabel("Send message")
+                            .padding(.trailing, 10)
+                            .padding(.bottom, 10)
                         }
-                        .buttonStyle(.plain)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Circle())
-                        .disabled(!canSend)
-                        .accessibilityLabel("Send message")
-                        .padding(.trailing, 10)
-                        .padding(.bottom, 10)
+                        .background {
+                            AlcoveTactileCardBackground(
+                                cornerRadius: 22,
+                                borderWidth: 3,
+                                topHighlightColor: .alcoveBackground,
+                                bottomLipColor: .alcoveSecondaryShadow,
+                                faceColor: .alcoveBackground,
+                                topBevel: 0,
+                                bottomBevel: 4.5
+                            )
+                        }
+
                     }
+                    .padding(.horizontal, 44)
+                    .padding(.top, keyboardHeight > 0 ? 30 : 38)
+                    .padding(.bottom, keyboardHeight > 0 ? 20 : 26)
+                    .frame(maxWidth: 980, alignment: .leading)
                     .background {
                         AlcoveTactileCardBackground(
-                            cornerRadius: 22,
+                            cornerRadius: 24,
                             borderWidth: 3,
-                            topHighlightColor: .alcoveBackground,
+                            topHighlightColor: .alcoveSurfaceElevated,
                             bottomLipColor: .alcoveSecondaryShadow,
-                            faceColor: .alcoveBackground,
+                            faceColor: .alcoveSurfaceElevated,
                             topBevel: 0,
-                            bottomBevel: 4.5
+                            bottomBevel: 4
                         )
                     }
+                    // Background applied after card fill renders Otter BEHIND both card and name pill
+                    .background(alignment: .topLeading) {
+                        MascotFigureView(emotion: viewModel.isThinking ? .thinking : .happy, showsTablet: true)
+                            .offset(x: -4, y: -196)
+                            .allowsHitTesting(false)
+                    }
+                    .padding(.top, 22)
 
-                }
-                .padding(.horizontal, 44)
-                .padding(.top, keyboardHeight > 0 ? 30 : 38)
-                .padding(.bottom, keyboardHeight > 0 ? 20 : 26)
-                .frame(maxWidth: 980, alignment: .leading)
-                .background {
-                    AlcoveTactileCardBackground(
-                        cornerRadius: 24,
-                        borderWidth: 3,
-                        topHighlightColor: .alcoveSurfaceElevated,
-                        bottomLipColor: .alcoveSecondaryShadow,
-                        faceColor: .alcoveSurfaceElevated,
-                        topBevel: 0,
-                        bottomBevel: 4
-                    )
-                }
-                // Background applied after card fill renders Otter BEHIND both card and name pill
-                .background(alignment: .topLeading) {
-                    MascotFigureView(emotion: viewModel.isThinking ? .thinking : .happy, showsTablet: true)
-                        .offset(x: -4, y: -196)
-                        .allowsHitTesting(false)
-                }
-                .overlay(alignment: .topLeading) {
-                    OtterNamePill()
-                        .offset(x: 44, y: -22)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            otterSecretTapCount += 1
-                            if otterSecretTapCount >= 5 {
-                                otterSecretTapCount = 0
-                                showingAPIConfigSheet = true
-                            }
-                        }
+                    Button(action: handleSecretOtterTap) {
+                        OtterNamePill()
+                            .contentShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.leading, 44)
                 }
                 .padding(.horizontal, 40)
                 // SwiftUI already shrinks the safe area for the software keyboard;
