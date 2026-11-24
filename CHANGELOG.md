@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Persist RoomPlan floor polygon corners in RoomPlanSnapshot.
 - Enter Result hub immediately upon finishing Stage 4 Lighting.
 - Keep unlocked stages green and add post-completion Result hub.
 - Hide header on zoom overlap and use secondary style for warning override button.
@@ -91,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Cache mascot obstacles, throttle A* rerouting, and memoize spatial warnings.
 - Remove interactive game-style tutorial overlay.
 - Remove numerical scores and grades from evaluations.
 - Share room validation/persistence and use alcoveSurfaceElevated token.
@@ -107,6 +109,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Relax tucked chair/table overlap tolerance and ignore elevated wall furniture >= 0.35m.
 - Polish borders, padding, evaluation copywriting, and ignore elevated wall furniture collisions.
+- Keep fixture visibility button size stable.
+- Restore tactile button inner shadow and standardize semibold button weights.
+- Use bright studio fill in Stages 2-3 and preserve lighting settings in Stage 5.
+- Align AR walkthrough top HUD bar height with Studio3D nav buttons.
+- Align compass capture and stabilize studio controls.
+- Build scanned floor and ceiling meshes from RoomPlan polygon with convex hull fallback.
 - Align Result Lighting split/toggle behavior and skip header overlap projection during drag.
 - Prevent double keyboard padding from pushing chat card to top.
 - Prevent drag-time updateUIView feedback loop and stabilize low-pitch furniture dragging.
