@@ -6,6 +6,8 @@ public struct MascotChatDrawer: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: MascotChatViewModel
     @State private var keyboardHeight: CGFloat = 0
+    @State private var otterSecretTapCount: Int = 0
+    @State private var showingAPIConfigSheet: Bool = false
     private let onClose: (() -> Void)?
 
     public init(
@@ -231,7 +233,14 @@ public struct MascotChatDrawer: View {
                 .overlay(alignment: .topLeading) {
                     OtterNamePill()
                         .offset(x: 44, y: -22)
-                        .allowsHitTesting(false)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            otterSecretTapCount += 1
+                            if otterSecretTapCount >= 5 {
+                                otterSecretTapCount = 0
+                                showingAPIConfigSheet = true
+                            }
+                        }
                 }
                 .padding(.horizontal, 40)
                 // SwiftUI already shrinks the safe area for the software keyboard;
@@ -251,6 +260,9 @@ public struct MascotChatDrawer: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             keyboardHeight = 0
+        }
+        .sheet(isPresented: $showingAPIConfigSheet) {
+            AIModelConfigSheet(room: viewModel.room, currentStage: viewModel.currentStage)
         }
     }
 

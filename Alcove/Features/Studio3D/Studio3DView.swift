@@ -181,6 +181,7 @@ public struct Studio3DView: View {
                     }
                 )
                 .presentationBackground(.clear)
+                .presentationCornerRadius(24)
             }
         }
     }

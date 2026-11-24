@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add 5-tap Otter secret AI config trigger and match sheet corner radius.
 - Persist RoomPlan floor polygon corners in RoomPlanSnapshot.
 - Enter Result hub immediately upon finishing Stage 4 Lighting.
 - Keep unlocked stages green and add post-completion Result hub.
@@ -108,6 +109,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Relax tucked chair/table overlap tolerance and ignore elevated wall furniture >= 0.35m.
+- Reduce camera stalls and align panel layout.
 - Polish borders, padding, evaluation copywriting, and ignore elevated wall furniture collisions.
 - Keep fixture visibility button size stable.
 - Restore tactile button inner shadow and standardize semibold button weights.

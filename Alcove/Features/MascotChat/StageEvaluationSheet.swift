@@ -315,7 +315,6 @@ public struct StageEvaluationSheet: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .strokeBorder(EvaluationReviewPalette.borderBrown, lineWidth: 2.5)
         )
-        .padding(4)
     }
 
     @ViewBuilder
