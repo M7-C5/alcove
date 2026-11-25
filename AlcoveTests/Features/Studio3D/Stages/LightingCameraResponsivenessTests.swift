@@ -30,6 +30,71 @@ struct LightingCameraResponsivenessTests {
         }
     }
 
+    @Test func staleWorkspaceRefreshesCannotCancelLatestCameraAnimation() async throws {
+        let (scene, view, _) = makeScene()
+        defer { LightingRoomPreview.dismantleUIView(view, coordinator: scene) }
+        scene.snapToViewport(.back)
+        let animation = try #require(scene.cameraController.animationTask)
+        var settings = LightingSimulationSettings()
+        for step in 0..<60 {
+            settings.showsLightFixtures = step.isMultiple(of: 2)
+            // Simulate a queued workspace refresh captured before the Back command.
+            scene.refresh(settings, preset: .front, placementMode: false, backgroundColor: .clear, in: view)
+            scene.updateFrame(in: view, deltaTime: 1.0 / 120)
+            await Task.yield()
+        }
+        await animation.value
+        #expect(scene.cameraController.yaw == ViewportPreset.back.targetYaw)
+        #expect(scene.cameraController.pitch == ViewportPreset.back.targetPitch)
+        #expect(scene.cameraController.animationTask == nil)
+        #expect(scene.backgroundUpdateCount == 1)
+    }
+
+    @Test func unchangedWorkspaceRefreshesDoNotReconfigureRealityKitBackground() {
+        let (scene, view, _) = makeScene()
+        defer { LightingRoomPreview.dismantleUIView(view, coordinator: scene) }
+        let settings = LightingSimulationSettings()
+        for _ in 0..<120 {
+            scene.refresh(settings, preset: .front, placementMode: false,
+                          backgroundColor: UIColor(white: 0, alpha: 0), in: view)
+        }
+        #expect(scene.backgroundUpdateCount == 1)
+        scene.refresh(settings, preset: .front, placementMode: false, backgroundColor: .white, in: view)
+        #expect(scene.backgroundUpdateCount == 2)
+        scene.tearDown()
+        scene.refresh(settings, preset: .left, placementMode: false, backgroundColor: .clear, in: view)
+        #expect(scene.backgroundUpdateCount == 2)
+    }
+
+    @Test func onlyPlacementTransitionsMaySynchronizeTheDeclarativeCameraPreset() {
+        let (scene, view, _) = makeScene()
+        defer { LightingRoomPreview.dismantleUIView(view, coordinator: scene) }
+        let settings = LightingSimulationSettings()
+        scene.snapToViewport(.left, animated: false)
+        scene.refresh(settings, preset: .front, placementMode: false, backgroundColor: .clear, in: view)
+        #expect(scene.cameraController.yaw == ViewportPreset.left.targetYaw)
+        scene.refresh(settings, preset: .right, placementMode: true, backgroundColor: .clear, in: view)
+        #expect(scene.cameraController.yaw == ViewportPreset.top.targetYaw)
+        #expect(scene.cameraController.pitch == ViewportPreset.top.targetPitch)
+        scene.refresh(settings, preset: .left, placementMode: false, backgroundColor: .clear, in: view)
+        #expect(scene.cameraController.yaw == ViewportPreset.left.targetYaw)
+    }
+
+    @Test func placementAllowsCameraSnapsAndPreservesThemAcrossRefreshes() {
+        let (scene, view, _) = makeScene()
+        defer { LightingRoomPreview.dismantleUIView(view, coordinator: scene) }
+        let settings = LightingSimulationSettings()
+        scene.refresh(settings, preset: .top, placementMode: true, backgroundColor: .clear, in: view)
+
+        for preset in [ViewportPreset.left, .right, .front, .back, .top] {
+            scene.snapToViewport(preset, animated: false)
+            scene.refresh(settings, preset: .top, placementMode: true, backgroundColor: .clear, in: view)
+            #expect(scene.isPlacementMode)
+            #expect(scene.cameraController.yaw == preset.targetYaw)
+            #expect(scene.cameraController.pitch == preset.targetPitch)
+        }
+    }
+
     @Test func renderCallbacksDeferAndCoalesceHeaderChangesAndCancelOnDismissal() async {
         let (scene, view, _) = makeScene()
         defer { view.scene.anchors.removeAll() }

@@ -242,7 +242,7 @@ struct LightingWorkspaceView: View {
                             }
                         }
                     }
-                    StudioCameraButton(isPresented: $isCameraMenuPresented, isDisabled: placement.isActive)
+                    StudioCameraButton(isPresented: $isCameraMenuPresented)
                     StudioResultIconButton(
                         systemImage: "lightbulb",
                         active: true,
@@ -265,7 +265,7 @@ struct LightingWorkspaceView: View {
                     }
                 }
             } else {
-                StudioCameraButton(isPresented: $isCameraMenuPresented, isDisabled: placement.isActive)
+                StudioCameraButton(isPresented: $isCameraMenuPresented)
             }
         }
     }
@@ -298,11 +298,17 @@ struct LightingWorkspaceView: View {
             preset = selected
             snapToViewport?(selected)
             StudioViewportFeedback.snap()
-            closeCameraMenu()
+            closeCameraMenu(animated: false)
         }
     }
 
-    private func closeCameraMenu() {
+    private func closeCameraMenu(animated: Bool = true) {
+        if !animated {
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { isCameraMenuPresented = false }
+            return
+        }
         withAnimation(.spring(response: 0.32, dampingFraction: 0.80)) {
             isCameraMenuPresented = false
         }
@@ -404,7 +410,6 @@ struct LightingWorkspaceView: View {
     @ViewBuilder private var viewportControls: some View {
         if placement.isActive {
             HStack(spacing: 16) {
-                Label("Top view locked", systemImage: "lock.fill").font(.caption)
                 Button("Done", action: togglePlacement)
                     .font(.subheadline.bold())
                     .frame(minWidth: 64, minHeight: 44)
