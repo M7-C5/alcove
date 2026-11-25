@@ -66,7 +66,7 @@ struct LightingRoomPreview: UIViewRepresentable {
         let view = ARView(frame: .zero, cameraMode: .nonAR, automaticallyConfigureSession: false)
         view.isOpaque = false
         view.backgroundColor = .clear
-        view.environment.background = .color(resolvedBackground)
+        context.coordinator.updateBackground(resolvedBackground, in: view)
         view.renderOptions.insert([.disableMotionBlur, .disableDepthOfField])
         view.scene.addAnchor(context.coordinator.root)
         let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(LightingRoomScene.orbit(_:)))
@@ -109,17 +109,16 @@ struct LightingRoomPreview: UIViewRepresentable {
     }
 
     func updateUIView(_ view: ARView, context: Context) {
-        view.environment.background = .color(resolvedBackground)
         context.coordinator.onHeaderOverlap = onHeaderOverlap
         context.coordinator.onPlaceLight = onPlaceLight
         context.coordinator.onSelectLight = onSelectLight
         context.coordinator.onClearSelection = onClearSelection
         context.coordinator.onMoveLight = onMoveLight
-        context.coordinator.setPlacementMode(isPlacementMode)
         context.coordinator.updateFixtures(snapshot.fixtures)
         context.coordinator.setSelection(selectedFixtureIDs)
         context.coordinator.isSelectingMultiple = isSelectingMultiple
-        context.coordinator.apply(settings, preset: preset, in: view, animated: true)
+        context.coordinator.refresh(settings, preset: preset, placementMode: isPlacementMode,
+                                    backgroundColor: resolvedBackground, in: view)
     }
 
     static func dismantleUIView(_ view: ARView, coordinator: LightingRoomScene) {
@@ -147,6 +146,8 @@ final class LightingRoomScene: NSObject {
     private var fixtures: [(definition: LightFixture, light: LightingFixtureLight, model: LightingFixtureModel)] = []
     private var previousSettings: LightingSimulationSettings?
     private var previousPreset: ViewportPreset?
+    private var previousBackgroundColor: UIColor?
+    private(set) var backgroundUpdateCount = 0
     let cameraController: StudioOrbitCameraController
     private var placementCameraDistance: Float?
     private var walls: [(entity: Entity, normal: SIMD3<Float>)] = []
@@ -194,10 +195,27 @@ final class LightingRoomScene: NSObject {
         root.addChild(sun)
     }
 
+    func updateBackground(_ color: UIColor, in view: ARView) {
+        guard isActive, previousBackgroundColor != color else { return }
+        previousBackgroundColor = color
+        backgroundUpdateCount += 1
+        view.environment.background = .color(color)
+    }
+
+    /// View refreshes update lighting, never replay a stale declarative camera selection.
+    func refresh(_ settings: LightingSimulationSettings, preset: ViewportPreset, placementMode: Bool,
+                 backgroundColor: UIColor, in view: ARView) {
+        guard isActive else { return }
+        updateBackground(backgroundColor, in: view)
+        let placementChanged = setPlacementMode(placementMode)
+        apply(settings, preset: preset, in: view, animated: true, updatesCameraPreset: placementChanged)
+    }
+
     func apply(_ settings: LightingSimulationSettings, preset: ViewportPreset, in view: ARView,
-               animated: Bool = false) {
+               animated: Bool = false, updatesCameraPreset: Bool = true) {
+        guard isActive else { return }
         let effectivePreset: ViewportPreset = isPlacementMode ? .top : preset
-        if previousPreset != effectivePreset {
+        if updatesCameraPreset, previousPreset != effectivePreset {
             let animate = animated && previousPreset != nil && !isPlacementMode
             setCameraPreset(effectivePreset, animated: animate)
         }
@@ -230,7 +248,7 @@ final class LightingRoomScene: NSObject {
 
     /// The same immediate camera command used by the other studio stages.
     func snapToViewport(_ preset: ViewportPreset, animated: Bool = true) {
-        guard !isPlacementMode else { return }
+        guard isActive else { return }
         setCameraPreset(preset, animated: animated)
     }
 
@@ -374,8 +392,9 @@ final class LightingRoomScene: NSObject {
         for fixture in fixtures { fixture.model.setSelected(ids.contains(fixture.definition.id)) }
     }
 
-    func setPlacementMode(_ enabled: Bool) {
-        guard isPlacementMode != enabled else { return }
+    @discardableResult
+    func setPlacementMode(_ enabled: Bool) -> Bool {
+        guard isPlacementMode != enabled else { return false }
         isPlacementMode = enabled
         placementViewportSize = nil
         overlayRevision &+= 1
@@ -393,6 +412,7 @@ final class LightingRoomScene: NSObject {
         placementOverlay.isEnabled = enabled
         previousSettings = nil
         previousPreset = nil
+        return true
     }
 
     private func buildPlacementOverlay() {

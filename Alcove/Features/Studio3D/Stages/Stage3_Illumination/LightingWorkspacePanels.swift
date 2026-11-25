@@ -11,7 +11,7 @@ struct LightingSourcePanel: View {
             sourceHeader
             StudioStageButton(title: isAdding ? "Save Lights" : "Add light", role: .add,
                               systemImage: isAdding ? "checkmark" : "plus.circle", fillsWidth: true, action: onAdd)
-            if editor.isSelectingMultiple {
+            if editor.isSelectingMultiple || editor.selectionCount > 0 {
                 selectionControls.transition(.opacity)
             }
             ScrollView {
@@ -75,7 +75,7 @@ struct LightingSourcePanel: View {
                 .accessibilityLabel(editor.selectionCount > 1 ? "Delete selected lights" : "Delete selected light")
             }
             if editor.isSelectingMultiple {
-                HStack(spacing: 8) {
+                HStack(spacing: 5) {
                     Button { editor.selectAll() } label: {
                         Text("Select all").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
                     }
@@ -210,7 +210,6 @@ struct LightingEditPanel: View {
             settingsContent(compact: true, inlineValues: false)
             settingsContent(compact: true, inlineValues: true)
         }
-        .animation(.easeInOut(duration: 0.16), value: editor.selected?.id)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(.top, titleTopInset)
         .lightingPanel()
@@ -218,33 +217,30 @@ struct LightingEditPanel: View {
 
     private func settingsContent(compact: Bool, inlineValues: Bool) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Label("Light Settings", systemImage: "lamp.desk.fill")
                     .font(.custom("Cleanow", size: 20, relativeTo: .headline))
                 Spacer(minLength: 0)
-                if inlineValues, editor.selectionCount > 1 {
+                if editor.selectionCount > 1 {
                     Text("\(editor.selectionCount)")
                         .font(.caption.bold())
                         .accessibilityLabel("Editing \(editor.selectionCount) lights together")
                 }
             }
-            if !inlineValues, editor.selectionCount > 1 {
-                Text("Editing \(editor.selectionCount) lights")
-                    .font(.caption.weight(.semibold))
-                    .padding(.top, 8)
-            }
             lampTypePicker
-                .padding(.top, compact ? 8 : 12)
-            if !inlineValues, editor.selectionCount > 1 {
+                .padding(.top, 4)
+            if !inlineValues, editor.selected != nil {
                 Text("Changes apply to all selected lights")
                     .font(compact ? .caption2 : .caption)
                     .foregroundStyle(Color.alcoveMutedInk)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 8)
+                    .opacity(editor.selectionCount > 1 ? 1 : 0)
+                    .accessibilityHidden(editor.selectionCount <= 1)
             }
             if let fixture = editor.selected {
-                Spacer(minLength: compact ? 8 : 16)
                 fixtureControls(fixture, compact: compact, inlineValues: inlineValues)
+                    .padding(.top, compact ? 8 : 16)
                     .transition(.opacity)
             } else {
                 Text(editor.isSelectingMultiple ? "Select lights from the list or the room to edit them together." : "Choose a lamp type, then tap the room to place it.")
@@ -281,9 +277,18 @@ struct LightingEditPanel: View {
     }
 
     private func fixtureControls(_ fixture: LightFixture, compact: Bool, inlineValues: Bool) -> some View {
-        let colorValue = editor.commonTemperature.map { "\($0) K" } ?? "Mixed"
-        let brightnessValue = editor.commonBrightness.map { "\(Int($0)) lm" } ?? "Mixed"
-        return VStack(alignment: .leading, spacing: 0) {
+        let selected = editor.selectedFixtures
+        let temperatures = selected.map(\.colorTemperatureKelvin)
+        let lowerTemperature = temperatures.min() ?? fixture.colorTemperatureKelvin
+        let upperTemperature = temperatures.max() ?? fixture.colorTemperatureKelvin
+        let brightnesses = selected.map { Int($0.lumens) }
+        let lowerBrightness = brightnesses.min() ?? Int(fixture.lumens)
+        let upperBrightness = brightnesses.max() ?? Int(fixture.lumens)
+        let colorValue = lowerTemperature == upperTemperature
+            ? "\(lowerTemperature) K" : "\(lowerTemperature)–\(upperTemperature) K"
+        let brightnessValue = lowerBrightness == upperBrightness
+            ? "\(lowerBrightness) lm" : "\(lowerBrightness)–\(upperBrightness) lm"
+        return VStack(alignment: .leading, spacing: 24) {
             sliderSection("Color Temperature", value: colorValue, lower: "2200 K", upper: "6500 K",
                           compact: compact, inlineValues: inlineValues) {
                 LightingGradientSlider(value: Binding(
@@ -291,8 +296,7 @@ struct LightingEditPanel: View {
                     set: { value in editor.updateSelected { $0.colorTemperatureKelvin = Int(value) } }
                 ), range: 2200...6500, step: 100, colors: [.orange, .yellow, LightingTheme.row, .cyan],
                                        label: "Color Temperature", formattedValue: editor.commonTemperature.map { "\($0) Kelvin" } ?? "Mixed values")
-            }.padding(.top, 5)
-            Spacer(minLength: compact ? 8 : 15)
+            }
             sliderSection("Brightness", value: brightnessValue, lower: "0 lm", upper: "3000 lm",
                           compact: compact, inlineValues: inlineValues) {
                 LightingGradientSlider(value: Binding(
@@ -302,8 +306,7 @@ struct LightingEditPanel: View {
                                        colors: [Color(uiColor: .darkGray), Color(uiColor: .systemGray6)],
                                        label: "Brightness", formattedValue: editor.commonBrightness.map { "\(Int($0)) lumens" } ?? "Mixed values")
             }
-            .padding(.bottom, 15)
-        }
+        }.padding(.top, 10)
     }
 
     private func sliderSection<Control: View>(
@@ -312,30 +315,36 @@ struct LightingEditPanel: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text(title).font(compact ? .caption.bold() : .subheadline.bold())
+                Text(title)
+                    .font(compact ? .caption.bold() : .subheadline.bold())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
                 Spacer(minLength: 4)
                 if inlineValues {
-                    Text(value).font(.caption).monospacedDigit()
+                    Text(value)
+                        .font(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(LightingTheme.ink)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
             }
             if !inlineValues {
                 Text(value)
                     .font(compact ? .caption2 : .subheadline)
                     .monospacedDigit()
-                    .foregroundStyle(Color.alcoveMutedInk)
+                    .foregroundStyle(LightingTheme.ink)
                     .frame(maxWidth: .infinity)
                     .padding(.top, compact ? 0 : 8)
             }
             control()
-            if !inlineValues {
-                HStack {
-                    Text(lower)
-                    Spacer()
-                    Text(upper)
-                }
-                .font(compact ? .caption2 : .caption)
-                .foregroundStyle(Color.alcoveMutedInk)
+            HStack {
+                Text(lower)
+                Spacer()
+                Text(upper)
             }
+            .font(compact ? .caption2 : .caption)
+            .foregroundStyle(LightingTheme.ink)
         }
     }
 

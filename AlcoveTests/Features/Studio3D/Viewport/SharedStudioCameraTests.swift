@@ -102,19 +102,22 @@ struct SharedStudioCameraTests {
         #expect(scene.root.findEntity(named: furniture.name) === furniture)
     }
 
-    @Test func lightingPlacementBlocksPresetCommandsUntilPlacementFinishes() {
+    @Test func lightingPlacementStartsAtTopAndAllowsPresetCommands() {
         let room = SampleData.createStarterRoom()
         let scene = LightingRoomScene(snapshot: LightingRoomSnapshot(room: room))
         let view = ARView(frame: .zero, cameraMode: .nonAR, automaticallyConfigureSession: false)
         scene.setPlacementMode(true)
         scene.apply(LightingSimulationSettings(), preset: .front, in: view)
-        scene.snapToViewport(.left, animated: false)
         #expect(scene.cameraController.yaw == ViewportPreset.top.targetYaw)
         #expect(scene.cameraController.pitch == ViewportPreset.top.targetPitch)
-        scene.setPlacementMode(false)
         scene.snapToViewport(.left, animated: false)
+        #expect(scene.isPlacementMode)
         #expect(scene.cameraController.yaw == ViewportPreset.left.targetYaw)
         #expect(scene.cameraController.pitch == ViewportPreset.left.targetPitch)
+        scene.setPlacementMode(false)
+        scene.snapToViewport(.right, animated: false)
+        #expect(scene.cameraController.yaw == ViewportPreset.right.targetYaw)
+        #expect(scene.cameraController.pitch == ViewportPreset.right.targetPitch)
     }
 
     @Test func backgroundCompassPreservesCutawayShadowsWithoutVisibleNorth() throws {

@@ -108,6 +108,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Preserve lighting camera selections across workspace refreshes and allow angle changes while adding lights.
+- Stabilize lighting settings spacing, keep Kelvin and lumen labels visible, and show Delete whenever lights are selected.
 - Relax tucked chair/table overlap tolerance and ignore elevated wall furniture >= 0.35m.
 - Reduce camera stalls and align panel layout.
 - Polish borders, padding, evaluation copywriting, and ignore elevated wall furniture collisions.
