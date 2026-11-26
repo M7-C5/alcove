@@ -108,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Tighten lighting selection row spacing and add a small inset above the lamp type dropdown.
 - Preserve lighting camera selections across workspace refreshes and allow angle changes while adding lights.
 - Stabilize lighting settings spacing, keep Kelvin and lumen labels visible, and show Delete whenever lights are selected.
 - Relax tucked chair/table overlap tolerance and ignore elevated wall furniture >= 0.35m.
