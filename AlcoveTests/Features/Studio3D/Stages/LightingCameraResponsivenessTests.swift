@@ -1,11 +1,64 @@
 import RealityKit
 import Testing
 import UIKit
+import SwiftUI
 import simd
 @testable import Alcove
 
 @Suite("Lighting camera responsiveness") @MainActor
 struct LightingCameraResponsivenessTests {
+    @Test func mountedPreviewConnectsMenuCommandsAcrossRefreshAndRemount() async throws {
+        let snapshot = LightingRoomSnapshot(room: SampleData.createStarterRoom())
+        let controls = LightingCameraControls()
+        var settings = LightingSimulationSettings()
+        func preview(id: Int) -> some View {
+            LightingRoomPreview(snapshot: snapshot, settings: settings, preset: .top,
+                                cameraControls: controls)
+                .id(id)
+        }
+        let host = UIHostingController(rootView: preview(id: 0))
+        let windowScene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let window = UIWindow(windowScene: windowScene)
+        window.frame = CGRect(x: 0, y: 0, width: 1194, height: 834)
+        window.rootViewController = host
+        window.isHidden = false
+        defer {
+            controls.scene?.tearDown()
+            window.isHidden = true
+            window.rootViewController = nil
+        }
+        host.view.layoutIfNeeded()
+        await flushCallbacks()
+        let originalScene = try #require(controls.scene)
+
+        for preset in ViewportPreset.allCases {
+            controls.snap(to: preset, animated: false)
+            settings.minuteOfDay += 10
+            host.rootView = preview(id: 0)
+            host.view.layoutIfNeeded()
+            await flushCallbacks()
+            #expect(controls.scene === originalScene)
+            #expect(originalScene.cameraController.yaw == preset.targetYaw)
+            #expect(originalScene.cameraController.pitch == preset.targetPitch)
+        }
+
+        // Selecting Reset Angle again must still work after a manual orbit.
+        originalScene.cameraController.orbit(fromYaw: 0, pitch: 0.62, deltaX: 80, deltaY: 40)
+        controls.snap(to: .dollhouse, animated: false)
+        #expect(originalScene.cameraController.yaw == ViewportPreset.dollhouse.targetYaw)
+        #expect(originalScene.cameraController.pitch == ViewportPreset.dollhouse.targetPitch)
+
+        // Returning from AR creates a new viewport; commands must target its coordinator.
+        host.rootView = preview(id: 1)
+        host.view.layoutIfNeeded()
+        await flushCallbacks()
+        let replacement = try #require(controls.scene)
+        #expect(replacement !== originalScene)
+        controls.snap(to: .back, animated: false)
+        #expect(replacement.cameraController.yaw == ViewportPreset.back.targetYaw)
+        #expect(replacement.cameraController.pitch == ViewportPreset.back.targetPitch)
+    }
+
     private func makeScene() -> (LightingRoomScene, ARView, [LightFixture]) {
         let room = MockRoomGenerator.generateBedroomOfficeCombo()
         let kinds: [LightKind] = [.ceilingLight, .pendantLight, .wallLight]
