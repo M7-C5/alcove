@@ -25,7 +25,7 @@ struct LightingWorkspaceView: View {
     @State private var editor: LightingSetupViewModel
     @State private var preset: ViewportPreset = .top
     @State private var isCameraMenuPresented = false
-    @State private var snapToViewport: Studio3DViewport.ViewportSnapper?
+    @State private var cameraControls = LightingCameraControls()
     @State private var placement = LightingPlacementState()
     @State private var showingDelete = false
     @State private var lampTypeMenuPresented = false
@@ -296,7 +296,7 @@ struct LightingWorkspaceView: View {
     private var cameraMenu: some View {
         StudioCameraMenuContent(selected: preset) { selected in
             preset = selected
-            snapToViewport?(selected)
+            cameraControls.snap(to: selected)
             StudioViewportFeedback.snap()
             closeCameraMenu(animated: false)
         }
@@ -391,7 +391,7 @@ struct LightingWorkspaceView: View {
             snapshot: LightingRoomSnapshot(base: roomSnapshot, fixtures: editor.drafts),
             settings: settings,
             preset: preset,
-            onSnapToViewportResolved: { snapToViewport = $0 },
+            cameraControls: cameraControls,
             onHeaderOverlap: { headerOverlapped = $0 },
             backgroundColor: .clear,
             onPlaceLight: { point in

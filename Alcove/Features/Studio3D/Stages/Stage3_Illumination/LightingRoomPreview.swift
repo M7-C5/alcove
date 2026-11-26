@@ -44,12 +44,23 @@ struct LightingRoomSnapshot: Sendable {
     }
 }
 
+/// Reference storage keeps camera commands available without writing SwiftUI state
+/// from makeUIView. The scene remains owned by the representable's coordinator.
+@MainActor
+final class LightingCameraControls {
+    weak var scene: LightingRoomScene?
+
+    func snap(to preset: ViewportPreset, animated: Bool = true) {
+        scene?.snapToViewport(preset, animated: animated)
+    }
+}
+
 struct LightingRoomPreview: UIViewRepresentable {
     @Environment(\.colorScheme) private var colorScheme
     let snapshot: LightingRoomSnapshot
     let settings: LightingSimulationSettings
     let preset: ViewportPreset
-    var onSnapToViewportResolved: ((@escaping Studio3DViewport.ViewportSnapper) -> Void)?
+    let cameraControls: LightingCameraControls
     var onHeaderOverlap: ((Bool) -> Void)?
     var backgroundColor: UIColor = .init(white: 0.08, alpha: 1)
     var onPlaceLight: ((SIMD2<Float>) -> Void)?
@@ -97,9 +108,7 @@ struct LightingRoomPreview: UIViewRepresentable {
         context.coordinator.setSelection(selectedFixtureIDs)
         context.coordinator.isSelectingMultiple = isSelectingMultiple
         context.coordinator.apply(settings, preset: preset, in: view, animated: true)
-        onSnapToViewportResolved? { [weak coordinator = context.coordinator] preset in
-            coordinator?.snapToViewport(preset)
-        }
+        cameraControls.scene = context.coordinator
         let coordinator = context.coordinator
         coordinator.badgeSubscription = view.scene.subscribe(to: SceneEvents.Update.self) { [weak coordinator, weak view] event in
             guard let view else { return }
@@ -109,6 +118,7 @@ struct LightingRoomPreview: UIViewRepresentable {
     }
 
     func updateUIView(_ view: ARView, context: Context) {
+        cameraControls.scene = context.coordinator
         context.coordinator.onHeaderOverlap = onHeaderOverlap
         context.coordinator.onPlaceLight = onPlaceLight
         context.coordinator.onSelectLight = onSelectLight
