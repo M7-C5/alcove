@@ -12,7 +12,9 @@ struct LightingSourcePanel: View {
             StudioStageButton(title: isAdding ? "Save Lights" : "Add light", role: .add,
                               systemImage: isAdding ? "checkmark" : "plus.circle", fillsWidth: true, action: onAdd)
             if editor.isSelectingMultiple || editor.selectionCount > 0 {
-                selectionControls.transition(.opacity)
+                selectionControls
+                    .padding(.bottom, editor.isSelectingMultiple ? -12 : 0)
+                    .transition(.opacity)
             }
             ScrollView {
                 LazyVStack(spacing: 12) {
@@ -77,12 +79,18 @@ struct LightingSourcePanel: View {
             if editor.isSelectingMultiple {
                 HStack(spacing: 5) {
                     Button { editor.selectAll() } label: {
-                        Text("Select all").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                        Text("Select all")
+                            .padding(.top, 4)
+                            .frame(minWidth: 44, minHeight: 44, alignment: .topLeading)
+                            .contentShape(Rectangle())
                     }
                     .disabled(editor.selectionCount == editor.drafts.count)
                     Spacer(minLength: 0)
                     Button { editor.clearSelection() } label: {
-                        Text("Clear").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                        Text("Clear")
+                            .padding(.top, 4)
+                            .frame(minWidth: 44, minHeight: 44, alignment: .topTrailing)
+                            .contentShape(Rectangle())
                     }
                     .disabled(editor.selectionCount == 0)
                 }
@@ -228,7 +236,7 @@ struct LightingEditPanel: View {
                 }
             }
             lampTypePicker
-                .padding(.top, 4)
+                .padding(.top, 8)
             if !inlineValues, editor.selected != nil {
                 Text("Changes apply to all selected lights")
                     .font(compact ? .caption2 : .caption)
